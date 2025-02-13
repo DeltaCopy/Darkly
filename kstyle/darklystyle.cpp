@@ -75,7 +75,7 @@
 #include <QQuickWindow>
 #endif
 
-// #include <QDebug>
+#include <QDebug>
 
 namespace DarklyPrivate
 {
@@ -468,6 +468,10 @@ void Style::polish(QWidget *widget)
     } else if (qobject_cast<QMainWindow *>(widget)) {
         widget->setAttribute(Qt::WA_StyledBackground);
     } else if (qobject_cast<QDialogButtonBox *>(widget)) {
+        addEventFilter(widget);
+    } else if (qobject_cast<QMenuBar *>(widget)) {
+        widget->setBackgroundRole(QPalette::Window);
+        widget->setPalette(_toolsAreaManager->palette());
         addEventFilter(widget);
     }
 
@@ -5207,8 +5211,8 @@ bool Style::drawMenuBarEmptyAreaControl(const QStyleOption *option, QPainter *pa
     if (!widget)
         return true;
 
-    if (_helper->titleBarColor(true).alphaF() == 1 || !_translucentWidgets.contains(widget->window()))
-        return true;
+    // if (_helper->titleBarColor(true).alphaF() == 1 || !_translucentWidgets.contains(widget->window()))
+    //     return true;
 
     const bool windowActive(widget && widget->isActiveWindow());
 
@@ -5219,72 +5223,72 @@ bool Style::drawMenuBarEmptyAreaControl(const QStyleOption *option, QPainter *pa
 
     // changes menubar background opacity
 
-    if (widget && _helper->titleBarColor(windowActive).alphaF() * 100.0 < 100 && _translucentWidgets.contains(widget->window())) {
+    float opacity = 0.0;
+
+    QColor background(palette.color(QPalette::Window));
+
+    if (StyleConfigData::menuBarOpacity() == 100) {
+        // opacity is at 100%
+        opacity = 1.0;
+        background.setAlphaF(opacity);
+        painter->fillRect(rect, background);
+    } else if (StyleConfigData::menuBarOpacity() == 0) {
         _helper->renderTransparentArea(painter, rect);
+        opacity = 0.0;
+        background.setAlphaF(opacity);
+        painter->fillRect(rect, background);
+    } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
+        // lower the opacity
+        _helper->renderTransparentArea(painter, rect);
+        opacity = StyleConfigData::menuBarOpacity() / 100.0;
+        background.setAlphaF(opacity);
+        painter->fillRect(rect, background);
+    }
 
-        float opacity = 0.0;
-        QColor background(palette.color(QPalette::Window));
+    if (widget && _helper->titleBarColor(windowActive).alphaF() * 100.0 < 100 && _translucentWidgets.contains(widget->window())) {
+        bool shouldDrawShadow = false;
+        if (DarklyPrivate::possibleTranslucentToolBars.isEmpty())
+            shouldDrawShadow = true;
 
-        if (StyleConfigData::menuBarOpacity() == 100) {
-            // opacity is at 100%
-            opacity = 1.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        } else if (StyleConfigData::menuBarOpacity() == 0) {
-            opacity = 0.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
-            // lower the opacity
-            opacity = StyleConfigData::menuBarOpacity() / 100.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
+        if (DarklyPrivate::possibleTranslucentToolBars.size() == 1) {
+            QSet<const QWidget *>::const_iterator i = DarklyPrivate::possibleTranslucentToolBars.constBegin();
+            const QToolBar *tb = qobject_cast<const QToolBar *>(*i);
+
+            if (tb) {
+                if (tb->orientation() == Qt::Vertical)
+                    shouldDrawShadow = true;
+                else if (tb->y() > widget->y() + rect.height())
+                    shouldDrawShadow = true; // bottom toolbar
+            }
+        } else if (_helper->titleBarColor(windowActive).alphaF() * 100.0 < 100) {
+            shouldDrawShadow = false;
+        }
+
+        if (_isKonsole && StyleConfigData::unifiedTabBarKonsole())
+            shouldDrawShadow = false;
+
+        if (shouldDrawShadow) {
+            painter->setBrush(Qt::NoBrush);
+            QLinearGradient gradient(rect.bottomLeft(), rect.bottomRight());
+            gradient.setColorAt(0, QColor(0, 0, 0, 40));
+            gradient.setColorAt(0.95, QColor(0, 0, 0, 40));
+            gradient.setColorAt(1, QColor(0, 0, 0, 40 / 2));
+            painter->setPen(QPen(gradient, 1));
+            painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+
+            gradient.setColorAt(0, QColor(0, 0, 0, 12));
+            gradient.setColorAt(0.95, QColor(0, 0, 0, 12));
+            gradient.setColorAt(1, QColor(0, 0, 0, 12 / 2));
+            painter->setPen(QPen(gradient, 1));
+            painter->drawLine(rect.bottomLeft() - QPoint(0, 1), rect.bottomRight() - QPoint(0, 1));
+
+            gradient.setColorAt(0, QColor(0, 0, 0, 3));
+            gradient.setColorAt(0.95, QColor(0, 0, 0, 3));
+            gradient.setColorAt(1, QColor(0, 0, 0, 3 / 2));
+            painter->setPen(QPen(gradient, 1));
+            painter->drawLine(rect.bottomLeft() - QPoint(0, 2), rect.bottomRight() - QPoint(0, 2));
         }
     }
-
-    bool shouldDrawShadow = false;
-    if (DarklyPrivate::possibleTranslucentToolBars.isEmpty())
-        shouldDrawShadow = true;
-
-    if (DarklyPrivate::possibleTranslucentToolBars.size() == 1) {
-        QSet<const QWidget *>::const_iterator i = DarklyPrivate::possibleTranslucentToolBars.constBegin();
-        const QToolBar *tb = qobject_cast<const QToolBar *>(*i);
-
-        if (tb) {
-            if (tb->orientation() == Qt::Vertical)
-                shouldDrawShadow = true;
-            else if (tb->y() > widget->y() + rect.height())
-                shouldDrawShadow = true; // bottom toolbar
-        }
-    } else if (_helper->titleBarColor(windowActive).alphaF() * 100.0 < 100) {
-        shouldDrawShadow = false;
-    }
-
-    if (_isKonsole && StyleConfigData::unifiedTabBarKonsole())
-        shouldDrawShadow = false;
-
-    if (shouldDrawShadow) {
-        painter->setBrush(Qt::NoBrush);
-        QLinearGradient gradient(rect.bottomLeft(), rect.bottomRight());
-        gradient.setColorAt(0, QColor(0, 0, 0, 40));
-        gradient.setColorAt(0.95, QColor(0, 0, 0, 40));
-        gradient.setColorAt(1, QColor(0, 0, 0, 40 / 2));
-        painter->setPen(QPen(gradient, 1));
-        painter->drawLine(rect.bottomLeft(), rect.bottomRight());
-
-        gradient.setColorAt(0, QColor(0, 0, 0, 12));
-        gradient.setColorAt(0.95, QColor(0, 0, 0, 12));
-        gradient.setColorAt(1, QColor(0, 0, 0, 12 / 2));
-        painter->setPen(QPen(gradient, 1));
-        painter->drawLine(rect.bottomLeft() - QPoint(0, 1), rect.bottomRight() - QPoint(0, 1));
-
-        gradient.setColorAt(0, QColor(0, 0, 0, 3));
-        gradient.setColorAt(0.95, QColor(0, 0, 0, 3));
-        gradient.setColorAt(1, QColor(0, 0, 0, 3 / 2));
-        painter->setPen(QPen(gradient, 1));
-        painter->drawLine(rect.bottomLeft() - QPoint(0, 2), rect.bottomRight() - QPoint(0, 2));
-    }
-
     return true;
 }
 
@@ -5302,35 +5306,34 @@ bool Style::drawMenuBarItemControl(const QStyleOption *option, QPainter *painter
     const auto &rect(option->rect);
     const auto &palette(option->palette);
 
-    if (widget && _helper->titleBarColor(windowActive).alphaF() * 100.0 < 100 && _translucentWidgets.contains(widget->window())) {
+    float opacity = 0.0;
+
+    // 100% opacity = no transparency
+
+    QColor background(palette.color(QPalette::Window));
+
+    // changes menubar background opacity
+
+    if (StyleConfigData::menuBarOpacity() == 100) {
+        // opacity is at 100%
+        opacity = 1.0;
+        background.setAlphaF(opacity);
+        painter->fillRect(rect, background);
+    } else if (StyleConfigData::menuBarOpacity() == 0) {
+        // fully transparent
         _helper->renderTransparentArea(painter, rect);
-        float opacity = 0.0;
+        opacity = 0.0;
+        background.setAlphaF(opacity);
+        painter->fillRect(rect, background);
+    } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
+        // lower the opacity
+        _helper->renderTransparentArea(painter, rect);
+        opacity = StyleConfigData::menuBarOpacity() / 100.0;
+        background.setAlphaF(opacity);
+        painter->fillRect(rect, background);
+    }
 
-        // this paints the menubar with the same color from the titlebar
-        // painter->fillRect(rect, _helper->titleBarColor(windowActive));
-
-        // 100% opacity = no transparency
-
-        QColor background(palette.color(QPalette::Window));
-
-        // changes menubar background opacity
-
-        if (StyleConfigData::menuBarOpacity() == 100) {
-            // opacity is at 100%
-            opacity = 1.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        } else if (StyleConfigData::menuBarOpacity() == 0) {
-            opacity = 0.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
-            // lower the opacity
-            opacity = StyleConfigData::menuBarOpacity() / 100.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        }
-
+    if (widget && _helper->titleBarColor(windowActive).alphaF() * 100.0 < 100 && _translucentWidgets.contains(widget->window())) {
         bool shouldDrawShadow = false;
         int shadow_xoffset = 0;
         if (DarklyPrivate::possibleTranslucentToolBars.isEmpty())
@@ -5711,7 +5714,7 @@ bool Style::drawToolBarBackgroundControl(const QStyleOption *option, QPainter *p
     if (!widget)
         return true;
 
-    const bool windowActive(widget && widget->isActiveWindow());
+    // const bool windowActive(widget && widget->isActiveWindow());
 
     const auto &rect(option->rect);
     const auto &palette(option->palette);
@@ -5725,10 +5728,10 @@ bool Style::drawToolBarBackgroundControl(const QStyleOption *option, QPainter *p
     }
 
     // do nothing more if widget is opaque or should not be transparent
-    else if ((_helper->titleBarColor(windowActive).alphaF() * 100.0 == 100 && widget->window()->palette().color(QPalette::Window).alpha() == 255)
-             || !_translucentWidgets.contains(widget->window())) {
-        return true;
-    }
+    // else if ((_helper->titleBarColor(windowActive).alphaF() * 100.0 == 100 && widget->window()->palette().color(QPalette::Window).alpha() == 255)
+    //          || !_translucentWidgets.contains(widget->window())) {
+    //     return true;
+    // }
 
     else if (!isStylableToolbar(widget)) {
         return true;
@@ -5740,15 +5743,13 @@ bool Style::drawToolBarBackgroundControl(const QStyleOption *option, QPainter *p
     // paint background
     QColor backgroundColor = palette.color(QPalette::Window);
 
-    painter->setPen(Qt::NoPen);
-
     if (StyleConfigData::toolBarOpacity() == 100) {
         // opacity is at 100%
         opacity = 1.0;
         backgroundColor.setAlphaF(opacity);
         painter->fillRect(rect, backgroundColor);
     } else if (StyleConfigData::toolBarOpacity() == 0) {
-        // use the same titlebar color
+        // fully transparent
         _helper->renderTransparentArea(painter, rect);
         opacity = 0.0;
         backgroundColor.setAlphaF(opacity);

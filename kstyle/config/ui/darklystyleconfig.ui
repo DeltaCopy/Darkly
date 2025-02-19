@@ -839,7 +839,7 @@
            <item>
             <widget class="QSlider" name="_menuBarOpacity">
              <property name="toolTip">
-              <string>This only works on color schemes which support transparency</string>
+              <string>This changes the menubar opacity</string>
              </property>
              <property name="maximum">
               <number>100</number>
@@ -1112,7 +1112,7 @@
            <item>
             <widget class="QSlider" name="_toolBarOpacity">
              <property name="toolTip">
-              <string>This only works on color schemes which support transparency</string>
+              <string>This changes the toolbar opacity</string>
              </property>
              <property name="maximum">
               <number>100</number>

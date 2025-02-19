@@ -5212,8 +5212,8 @@ bool Style::drawMenuBarEmptyAreaControl(const QStyleOption *option, QPainter *pa
     if (!widget)
         return true;
 
-    if (_helper->titleBarColor(true).alphaF() == 1 || !_translucentWidgets.contains(widget->window()))
-        return true;
+    // if (_helper->titleBarColor(true).alphaF() == 1 || !_translucentWidgets.contains(widget->window()))
+    //     return true;
 
     const bool windowActive(widget && widget->isActiveWindow());
 
@@ -5222,72 +5222,72 @@ bool Style::drawMenuBarEmptyAreaControl(const QStyleOption *option, QPainter *pa
 
     // draw background
 
+    QColor background(palette.color(QPalette::Window));
+
+    // menubar and toolbar background should match for consistency
+    QColor opacityBackground(_toolsAreaManager->palette().color(QPalette::Window));
+
     // changes menubar background opacity
 
-    if (widget && _helper->titleBarColor(windowActive).alphaF() * 100.0 < 100 && _translucentWidgets.contains(widget->window())) {
+    if (StyleConfigData::menuBarOpacity() == 100) {
+        // opacity is at 100%
+        opacityBackground.setAlpha(1.0);
+        painter->fillRect(rect, opacityBackground);
+    } else if (StyleConfigData::menuBarOpacity() == 0) {
+        // fully transparent
         _helper->renderTransparentArea(painter, rect);
-
-        float opacity = 0.0;
-        QColor background(palette.color(QPalette::Window));
-
-        if (StyleConfigData::menuBarOpacity() == 100) {
-            // opacity is at 100%
-            opacity = 1.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        } else if (StyleConfigData::menuBarOpacity() == 0) {
-            opacity = 0.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
-            // lower the opacity
-            opacity = StyleConfigData::menuBarOpacity() / 100.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        }
+        opacityBackground.setAlphaF(0.0);
+        painter->fillRect(rect, opacityBackground);
+    } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
+        // lower the opacity
+        _helper->renderTransparentArea(painter, rect);
+        opacityBackground.setAlphaF(StyleConfigData::menuBarOpacity() / 100.0);
+        painter->fillRect(rect, opacityBackground);
     }
 
-    bool shouldDrawShadow = false;
-    if (DarklyPrivate::possibleTranslucentToolBars.isEmpty())
-        shouldDrawShadow = true;
+    if (widget && _helper->titleBarColor(windowActive).alphaF() * 100.0 < 100 && _translucentWidgets.contains(widget->window())) {
+        bool shouldDrawShadow = false;
+        if (DarklyPrivate::possibleTranslucentToolBars.isEmpty())
+            shouldDrawShadow = true;
 
-    if (DarklyPrivate::possibleTranslucentToolBars.size() == 1) {
-        QSet<const QWidget *>::const_iterator i = DarklyPrivate::possibleTranslucentToolBars.constBegin();
-        const QToolBar *tb = qobject_cast<const QToolBar *>(*i);
+        if (DarklyPrivate::possibleTranslucentToolBars.size() == 1) {
+            QSet<const QWidget *>::const_iterator i = DarklyPrivate::possibleTranslucentToolBars.constBegin();
+            const QToolBar *tb = qobject_cast<const QToolBar *>(*i);
 
-        if (tb) {
-            if (tb->orientation() == Qt::Vertical)
-                shouldDrawShadow = true;
-            else if (tb->y() > widget->y() + rect.height())
-                shouldDrawShadow = true; // bottom toolbar
+            if (tb) {
+                if (tb->orientation() == Qt::Vertical)
+                    shouldDrawShadow = true;
+                else if (tb->y() > widget->y() + rect.height())
+                    shouldDrawShadow = true; // bottom toolbar
+            }
+        } else if (_helper->titleBarColor(windowActive).alphaF() * 100.0 < 100) {
+            shouldDrawShadow = false;
         }
-    } else if (_helper->titleBarColor(windowActive).alphaF() * 100.0 < 100) {
-        shouldDrawShadow = false;
-    }
 
-    if (_isKonsole && StyleConfigData::unifiedTabBarKonsole())
-        shouldDrawShadow = false;
+        if (_isKonsole && StyleConfigData::unifiedTabBarKonsole())
+            shouldDrawShadow = false;
 
-    if (shouldDrawShadow) {
-        painter->setBrush(Qt::NoBrush);
-        QLinearGradient gradient(rect.bottomLeft(), rect.bottomRight());
-        gradient.setColorAt(0, QColor(0, 0, 0, 40));
-        gradient.setColorAt(0.95, QColor(0, 0, 0, 40));
-        gradient.setColorAt(1, QColor(0, 0, 0, 40 / 2));
-        painter->setPen(QPen(gradient, 1));
-        painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+        if (shouldDrawShadow) {
+            painter->setBrush(Qt::NoBrush);
+            QLinearGradient gradient(rect.bottomLeft(), rect.bottomRight());
+            gradient.setColorAt(0, QColor(0, 0, 0, 40));
+            gradient.setColorAt(0.95, QColor(0, 0, 0, 40));
+            gradient.setColorAt(1, QColor(0, 0, 0, 40 / 2));
+            painter->setPen(QPen(gradient, 1));
+            painter->drawLine(rect.bottomLeft(), rect.bottomRight());
 
-        gradient.setColorAt(0, QColor(0, 0, 0, 12));
-        gradient.setColorAt(0.95, QColor(0, 0, 0, 12));
-        gradient.setColorAt(1, QColor(0, 0, 0, 12 / 2));
-        painter->setPen(QPen(gradient, 1));
-        painter->drawLine(rect.bottomLeft() - QPoint(0, 1), rect.bottomRight() - QPoint(0, 1));
+            gradient.setColorAt(0, QColor(0, 0, 0, 12));
+            gradient.setColorAt(0.95, QColor(0, 0, 0, 12));
+            gradient.setColorAt(1, QColor(0, 0, 0, 12 / 2));
+            painter->setPen(QPen(gradient, 1));
+            painter->drawLine(rect.bottomLeft() - QPoint(0, 1), rect.bottomRight() - QPoint(0, 1));
 
-        gradient.setColorAt(0, QColor(0, 0, 0, 3));
-        gradient.setColorAt(0.95, QColor(0, 0, 0, 3));
-        gradient.setColorAt(1, QColor(0, 0, 0, 3 / 2));
-        painter->setPen(QPen(gradient, 1));
-        painter->drawLine(rect.bottomLeft() - QPoint(0, 2), rect.bottomRight() - QPoint(0, 2));
+            gradient.setColorAt(0, QColor(0, 0, 0, 3));
+            gradient.setColorAt(0.95, QColor(0, 0, 0, 3));
+            gradient.setColorAt(1, QColor(0, 0, 0, 3 / 2));
+            painter->setPen(QPen(gradient, 1));
+            painter->drawLine(rect.bottomLeft() - QPoint(0, 2), rect.bottomRight() - QPoint(0, 2));
+        }
     }
 
     return true;
@@ -5307,35 +5307,30 @@ bool Style::drawMenuBarItemControl(const QStyleOption *option, QPainter *painter
     const auto &rect(option->rect);
     const auto &palette(option->palette);
 
-    if (widget && _helper->titleBarColor(windowActive).alphaF() * 100.0 < 100 && _translucentWidgets.contains(widget->window())) {
+    QColor background(palette.color(QPalette::Window));
+
+    // menubar and toolbar background should match for consistency
+    QColor opacityBackground(_toolsAreaManager->palette().color(QPalette::Window));
+
+    // changes menubar background opacity
+
+    if (StyleConfigData::menuBarOpacity() == 100) {
+        // opacity is at 100%
+        opacityBackground.setAlpha(1.0);
+        painter->fillRect(rect, opacityBackground);
+    } else if (StyleConfigData::menuBarOpacity() == 0) {
+        // fully transparent
         _helper->renderTransparentArea(painter, rect);
-        float opacity = 0.0;
+        opacityBackground.setAlphaF(0.0);
+        painter->fillRect(rect, opacityBackground);
+    } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
+        // lower the opacity
+        _helper->renderTransparentArea(painter, rect);
+        opacityBackground.setAlphaF(StyleConfigData::menuBarOpacity() / 100.0);
+        painter->fillRect(rect, opacityBackground);
+    }
 
-        // this paints the menubar with the same color from the titlebar
-        // painter->fillRect(rect, _helper->titleBarColor(windowActive));
-
-        // 100% opacity = no transparency
-
-        QColor background(palette.color(QPalette::Window));
-
-        // changes menubar background opacity
-
-        if (StyleConfigData::menuBarOpacity() == 100) {
-            // opacity is at 100%
-            opacity = 1.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        } else if (StyleConfigData::menuBarOpacity() == 0) {
-            opacity = 0.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
-            // lower the opacity
-            opacity = StyleConfigData::menuBarOpacity() / 100.0;
-            background.setAlphaF(opacity);
-            painter->fillRect(rect, background);
-        }
-
+    if (widget && _helper->titleBarColor(windowActive).alphaF() * 100.0 < 100 && _translucentWidgets.contains(widget->window())) {
         bool shouldDrawShadow = false;
         int shadow_xoffset = 0;
         if (DarklyPrivate::possibleTranslucentToolBars.isEmpty())
@@ -5414,6 +5409,8 @@ bool Style::drawMenuBarItemControl(const QStyleOption *option, QPainter *painter
     const bool selected(enabled && (state & State_Selected));
     const bool sunken(enabled && (state & State_Sunken));
     const bool useStrongFocus(StyleConfigData::menuItemDrawStrongFocus());
+
+    painter->save();
 
     // render hover and focus
     if (useStrongFocus && (selected || sunken)) {
@@ -5716,10 +5713,10 @@ bool Style::drawToolBarBackgroundControl(const QStyleOption *option, QPainter *p
     if (!widget)
         return true;
 
-    const bool windowActive(widget && widget->isActiveWindow());
+    // const bool windowActive(widget && widget->isActiveWindow());
 
     const auto &rect(option->rect);
-    const auto &palette(option->palette);
+    auto &palette(option->palette);
 
     painter->setRenderHint(QPainter::Antialiasing, false);
 
@@ -5730,40 +5727,39 @@ bool Style::drawToolBarBackgroundControl(const QStyleOption *option, QPainter *p
     }
 
     // do nothing more if widget is opaque or should not be transparent
-    else if ((_helper->titleBarColor(windowActive).alphaF() * 100.0 == 100 && widget->window()->palette().color(QPalette::Window).alpha() == 255)
-             || !_translucentWidgets.contains(widget->window())) {
-        return true;
-    }
+    // else if ((_helper->titleBarColor(windowActive).alphaF() * 100.0 == 100 && widget->window()->palette().color(QPalette::Window).alpha() == 255)
+    //          || !_translucentWidgets.contains(widget->window())) {
+    //     return true;
+    // }
 
     else if (!isStylableToolbar(widget)) {
         return true;
     }
 
     // qDebug() << _blurHelper->_sregisteredWidgets;
-    float opacity = 0.0;
 
     // paint background
     QColor backgroundColor = palette.color(QPalette::Window);
 
-    painter->setPen(Qt::NoPen);
+    // menubar and toolbar background should match for consistency
+    QColor opacityBackground(_toolsAreaManager->palette().color(QPalette::Window));
+
+    // changes toolbar background opacity
 
     if (StyleConfigData::toolBarOpacity() == 100) {
         // opacity is at 100%
-        opacity = 1.0;
-        backgroundColor.setAlphaF(opacity);
-        painter->fillRect(rect, backgroundColor);
+        opacityBackground.setAlpha(1.0);
+        painter->fillRect(rect, opacityBackground);
     } else if (StyleConfigData::toolBarOpacity() == 0) {
-        // use the same titlebar color
+        // fully transparent
         _helper->renderTransparentArea(painter, rect);
-        opacity = 0.0;
-        backgroundColor.setAlphaF(opacity);
-        painter->fillRect(rect, backgroundColor);
+        opacityBackground.setAlphaF(0.0);
+        painter->fillRect(rect, opacityBackground);
     } else if (StyleConfigData::toolBarOpacity() < 100 && StyleConfigData::toolBarOpacity() > 0) {
         // lower the opacity
         _helper->renderTransparentArea(painter, rect);
-        opacity = StyleConfigData::toolBarOpacity() / 100.0;
-        backgroundColor.setAlphaF(opacity);
-        painter->fillRect(rect, backgroundColor);
+        opacityBackground.setAlphaF(StyleConfigData::toolBarOpacity() / 100.0);
+        painter->fillRect(rect, opacityBackground);
     }
 
     if (sideToolbarDolphin && _isDolphin) {
@@ -5798,7 +5794,7 @@ bool Style::drawToolBarBackgroundControl(const QStyleOption *option, QPainter *p
     }
 
     // stop here if the window is more transparent
-    if (widget->window()->palette().color(QPalette::Window).alpha() < (opacity / 100.0) * 255)
+    if (widget->window()->palette().color(QPalette::Window).alpha() < (StyleConfigData::toolBarOpacity() / 100.0) * 255)
         return true;
 
     if (!StyleConfigData::widgetDrawShadow())

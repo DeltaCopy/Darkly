@@ -171,15 +171,8 @@ void Decoration::setOpacity(qreal value)
 //________________________________________________________________
 QColor Decoration::titleBarColor() const
 {
-    auto c = window();
-    if (hideTitleBar())
-        return c->color(ColorGroup::Inactive, ColorRole::TitleBar);
-    else if (m_animation->state() == QAbstractAnimation::Running) {
-        return KColorUtils::mix(c->color(ColorGroup::Inactive, ColorRole::TitleBar), c->color(ColorGroup::Active, ColorRole::TitleBar), m_opacity);
-    } else
-        return c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
+    return window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
 }
-
 //________________________________________________________________
 QColor Decoration::outlineColor() const
 {
@@ -200,10 +193,7 @@ QColor Decoration::outlineColor() const
 QColor Decoration::fontColor() const
 {
     auto c = window();
-    if (m_animation->state() == QAbstractAnimation::Running) {
-        return KColorUtils::mix(c->color(ColorGroup::Inactive, ColorRole::Foreground), c->color(ColorGroup::Active, ColorRole::Foreground), m_opacity);
-    } else
-        return c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Foreground);
+    return c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Foreground);
 }
 
 //________________________________________________________________
@@ -331,14 +321,14 @@ void Decoration::calculateWindowAndTitleBarShapes(const bool windowShapeOnly)
 //________________________________________________________________
 void Decoration::updateTitleBar()
 {
+    // The titlebar rect has margins around it so the window can be resized by dragging a decoration edge.
     auto s = settings();
-    auto c = window();
     const bool maximized = isMaximized();
-    const int width = maximized ? c->width() : c->width() - 2 * s->largeSpacing() * Metrics::TitleBar_SideMargin;
-    const int height = maximized ? borderTop() : borderTop() - s->smallSpacing() * Metrics::TitleBar_TopMargin;
-    const int x = maximized ? 0 : s->largeSpacing() * Metrics::TitleBar_SideMargin;
-    const int y = maximized ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin;
-    setTitleBar(QRect(x, y, width, height));
+    const qreal width = maximized ? window()->width() : window()->width() - 2 * s->smallSpacing() * Metrics::TitleBar_SideMargin;
+    const qreal height = (maximized || isTopEdge()) ? borderTop() : borderTop() - s->smallSpacing() * Metrics::TitleBar_TopMargin;
+    const qreal x = maximized ? 0 : s->smallSpacing() * Metrics::TitleBar_SideMargin;
+    const qreal y = (maximized || isTopEdge()) ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin;
+    setTitleBar(QRectF(x, y, width, height));
 }
 
 //________________________________________________________________
@@ -561,13 +551,17 @@ void Decoration::paint(QPainter *painter, const QRectF &repaintRegion)
 
         // clip away the top part
         if (!hideTitleBar())
-            painter->setClipRect(0, borderTop(), size().width(), size().height() - borderTop(), Qt::IntersectClip);
+            painter->setClipRect(QRectF(0, borderTop(), size().width(), size().height() - borderTop()), Qt::IntersectClip);
 
-        if (s->isAlphaChannelSupported())
+        if (s->isAlphaChannelSupported()){
+            if (hasNoBorders()) {
+                painter->drawRoundedRect(rect(), 0, 0);
+            }
+
             painter->drawRoundedRect(rect(), m_internalSettings->cornerRadius(), m_internalSettings->cornerRadius());
-        else
+        }else{
             painter->drawRect(rect());
-
+        }
         painter->restore();
     }
 
@@ -652,9 +646,9 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
     // draw caption
     painter->setFont(s->font());
     painter->setPen(fontColor());
-    const auto cR = captionRect();
-    const QString caption = painter->fontMetrics().elidedText(c->caption(), Qt::ElideMiddle, cR.first.width());
-    painter->drawText(cR.first, cR.second | Qt::TextSingleLine, caption);
+    const auto [captionRectangle, alignment] = captionRect();
+    const QString caption = painter->fontMetrics().elidedText(window()->caption(), Qt::ElideMiddle, captionRectangle.width());
+    painter->drawText(captionRectangle, alignment | Qt::TextSingleLine, caption);
 
     // draw all buttons
     m_leftButtons->paint(painter, repaintRegion);

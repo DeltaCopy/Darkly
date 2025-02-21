@@ -3,6 +3,10 @@
 # The Dockerfile is inside .github/assets/docker/kde-neon
 # Build Darkly from release tag and publish .deb package
 
+# Plasma 6.3 post installation notes.
+# Remove libkdecorations2private11
+# Remove libkdecorations2-6
+
 on:
   workflow_call:
     inputs:
@@ -15,7 +19,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    container: deltacopy/darkly-kde-neon:0.1
+    container: deltacopy/darkly-kde-neon:0.2
     steps:
       - uses: actions/cache/restore@v4
         id: cache
@@ -33,7 +37,7 @@ jobs:
                     libkf5coreaddons-dev libkf5iconthemes-dev gettext qt3d5-dev libkf5kcmutils-dev \
                     qt6-base-dev libkf6coreaddons-dev \
                     libkf6config-dev libkf6guiaddons-dev libkf6i18n-dev libkf6iconthemes-dev \
-                    libkf6windowsystem-dev libkf6kcmutils-dev libkirigami-dev
+                    libkf6windowsystem-dev libkf6kcmutils-dev libkirigami-dev kf6-frameworkintegration-dev
       - name: Extract release tarball
         run: |
           tar xvf ${{ inputs.cache-file-path }}
@@ -45,6 +49,7 @@ jobs:
         id: create_deb_package
         run: |
           cd build_kf6
+          make install .
           checkinstall -D --pkgname darkly --pkgversion ${{ inputs.version }} --nodoc --default
           deb_file=$(find . -name "*.deb*")
           test ! -z $deb_file && mv $deb_file /home/neon/darkly_${{ inputs.version }}_kdeneon_amd64.deb

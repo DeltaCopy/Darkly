@@ -1,5 +1,5 @@
-%global kf6_version 6.2.0
-%define qt6_version 6.6.0
+%global kf6_version 6.3.0
+%define qt6_version 6.7.0
 %define kf5_version 5.102.0
 %define qt5_version 5.15.2
 %define dev Bali10050
@@ -96,10 +96,10 @@ Darkly is a fork of breeze theme style that aims to be visually modern and minim
 %{_datadir}/applications/kcm_%{_style}decoration.desktop
 %{_datadir}/kservices6/%{_style}decorationconfig.desktop
 %dir %{_kf6_qtplugindir}
-%dir %{_kf6_qtplugindir}/org.kde.kdecoration2.kcm
-%{_kf6_qtplugindir}/org.kde.kdecoration2.kcm/kcm_%{_style}decoration.so
-%dir %{_kf6_qtplugindir}/org.kde.kdecoration2/
-%{_kf6_qtplugindir}/org.kde.kdecoration2/org.kde.%{_style}.so
+%dir %{_kf6_qtplugindir}/org.kde.kdecoration3.kcm
+%{_kf6_qtplugindir}/org.kde.kdecoration3.kcm/kcm_%{_style}decoration.so
+%dir %{_kf6_qtplugindir}/org.kde.kdecoration3/
+%{_kf6_qtplugindir}/org.kde.kdecoration3/org.kde.%{_style}.so
 %dir %{_kf6_qtplugindir}/kstyle_config
 %{_kf6_qtplugindir}/kstyle_config/%{_style}styleconfig.so
 %dir %{_kf5_qtplugindir}/styles
@@ -127,10 +127,10 @@ Darkly is a fork of breeze theme style that aims to be visually modern and minim
 %{_kf6_applicationsdir}/kcm_%{_style}decoration.desktop
 %{_datadir}/kservices6/%{_style}decorationconfig.desktop
 %dir %{_kf6_plugindir}
-%dir %{_kf6_plugindir}/org.kde.kdecoration2.kcm
-%{_kf6_plugindir}/org.kde.kdecoration2.kcm/kcm_%{_style}decoration.so
-%dir %{_kf6_plugindir}/org.kde.kdecoration2/
-%{_kf6_plugindir}/org.kde.kdecoration2/org.kde.%{_style}.so
+%dir %{_kf6_plugindir}/org.kde.kdecoration3.kcm
+%{_kf6_plugindir}/org.kde.kdecoration3.kcm/kcm_%{_style}decoration.so
+%dir %{_kf6_plugindir}/org.kde.kdecoration3/
+%{_kf6_plugindir}/org.kde.kdecoration3/org.kde.%{_style}.so
 %dir %{_kf6_plugindir}/kstyle_config
 %{_kf6_plugindir}/kstyle_config/%{_style}styleconfig.so
 %dir %{_kf5_plugindir}/styles

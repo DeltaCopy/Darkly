@@ -34,6 +34,17 @@ ToolsAreaManager::~ToolsAreaManager()
 {
 }
 
+void ToolsAreaManager::recreateConfigWatcher(const QString &path)
+{
+    _config = KSharedConfig::openConfig(path);
+    if (!path.startsWith(QLatin1Char('/'))) {
+        _watcher = KConfigWatcher::create(_config);
+        connect(_watcher.data(), &KConfigWatcher::configChanged, this, &ToolsAreaManager::configUpdated);
+    } else {
+        _watcher.reset();
+    }
+}
+
 template<class T1, class T2>
 void appendIfNotAlreadyExists(T1 *list, T2 item)
 {
@@ -51,9 +62,7 @@ void ToolsAreaManager::registerApplication(QApplication *application)
     _listener->manager = this;
     if (application->property(colorProperty).isValid()) {
         auto path = application->property(colorProperty).toString();
-        _config = KSharedConfig::openConfig(path);
-        _watcher = KConfigWatcher::create(_config);
-        connect(_watcher.data(), &KConfigWatcher::configChanged, this, &ToolsAreaManager::configUpdated);
+        recreateConfigWatcher(path);
     }
     application->installEventFilter(_listener);
     configUpdated();
@@ -150,14 +159,11 @@ bool AppListener::eventFilter(QObject *watched, QEvent *event)
         }
         auto ev = static_cast<QDynamicPropertyChangeEvent *>(event);
         if (ev->propertyName() == colorProperty) {
+            QString path;
             if (qApp && qApp->property(colorProperty).isValid()) {
-                auto path = qApp->property(colorProperty).toString();
-                manager->_config = KSharedConfig::openConfig(path);
-            } else {
-                manager->_config = KSharedConfig::openConfig();
+                path = qApp->property(colorProperty).toString();
             }
-            manager->_watcher = KConfigWatcher::create(manager->_config);
-            connect(manager->_watcher.data(), &KConfigWatcher::configChanged, manager, &ToolsAreaManager::configUpdated);
+            manager->recreateConfigWatcher(path);
             manager->configUpdated();
         }
     }
@@ -184,6 +190,8 @@ bool ToolsAreaManager::eventFilter(QObject *watched, QEvent *event)
         QChildEvent *ev = nullptr;
         if (event->type() == QEvent::ChildAdded || event->type() == QEvent::ChildRemoved) {
             ev = static_cast<QChildEvent *>(event);
+        } else {
+            return false;
         }
 
         QPointer<QToolBar> tb = qobject_cast<QToolBar *>(ev->child());
@@ -212,14 +220,24 @@ void ToolsAreaManager::registerWidget(QWidget *widget)
     Q_ASSERT(widget);
     auto ptr = QPointer<QWidget>(widget);
 
+    QPointer<QMainWindow> mainWindow = qobject_cast<QMainWindow *>(ptr);
+
+    if (mainWindow && mainWindow == mainWindow->window()) {
+        const auto toolBars = mainWindow->findChildren<QToolBar *>(QString(), Qt::FindDirectChildrenOnly);
+        for (auto *toolBar : toolBars) {
+            tryRegisterToolBar(mainWindow, toolBar);
+        }
+        return;
+    }
+
     auto parent = ptr;
-    QPointer<QMainWindow> mainWindow = nullptr;
+
     while (parent != nullptr) {
         if (qobject_cast<QMdiArea *>(parent) || qobject_cast<QDockWidget *>(parent)) {
             break;
         }
-        if (qobject_cast<QMainWindow *>(parent)) {
-            mainWindow = qobject_cast<QMainWindow *>(parent);
+        if (auto window = qobject_cast<QMainWindow *>(parent)) {
+            mainWindow = window;
         }
         parent = parent->parentWidget();
     }

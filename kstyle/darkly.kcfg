@@ -8,14 +8,14 @@
   <!-- common options -->
   <group name="Common">
 
-    <!-- shadow -->
+    <!-- shadow strength-->
     <entry name="ShadowStrength" type = "Int">
-       <default>102</default>
+       <default>255</default>
        <min>25</min>
        <max>255</max>
     </entry>
 
-    <!-- shadow -->
+    <!-- shadow size -->
     <entry name="ShadowSize" type = "Enum">
       <choices>
           <choice name="ShadowNone"/>
@@ -27,8 +27,21 @@
       <default>ShadowLarge</default>
     </entry>
 
+    <!-- shadow color -->
     <entry name="ShadowColor" type = "Color">
        <default>0, 0, 0</default>
+    </entry>
+
+    <!-- shadow intensity -->
+     <entry name="ShadowIntensity" type = "Enum">
+       <choices>
+          <choice name="Off"/>
+          <choice name="Low"/>
+          <choice name="Medium"/>
+          <choice name="High"/>
+          <choice name="Maximum"/>
+      </choices>
+      <default>Medium</default>
     </entry>
 
     <!-- close button -->
@@ -42,6 +55,8 @@
        <min>1</min>
        <max>8</max>
     </entry>
+
+    <!-- button size -->
     <entry name="ButtonSize" type="Int">
         <default>4</default>
     </entry>

@@ -128,10 +128,6 @@ void StyleConfig::save()
     StyleConfigData::setButtonSize(_buttonSize->value());
     StyleConfigData::setKTextEditDrawFrame(_kTextEditDrawFrame->isChecked());
     StyleConfigData::setWidgetDrawShadow(_widgetDrawShadow->isChecked());
-
-    // switch (_shadowSize->currentIndex()) {
-    //     case 0: StyleConfigData::setShadowSize("ShadowNone");
-    // }
     StyleConfigData::setShadowSize(_shadowSize->currentIndex());
     StyleConfigData::setShadowColor(_shadowColor->color());
     StyleConfigData::setShadowStrength(_shadowStrength->value());

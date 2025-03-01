@@ -758,7 +758,6 @@ void Decoration::createShadow()
         BoxShadowRenderer shadowRenderer;
         shadowRenderer.setBorderRadius(m_internalSettings->cornerRadius() + 0.5);
         shadowRenderer.setBoxSize(boxSize);
-        shadowRenderer.setDevicePixelRatio(1.0); // TODO: Create HiDPI shadows?
 
         const qreal strength = static_cast<qreal>(g_shadowStrength) / 255.0;
         shadowRenderer.addShadow(params.shadow1.offset, params.shadow1.radius, withOpacity(g_shadowColor, params.shadow1.opacity * strength));

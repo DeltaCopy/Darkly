@@ -254,7 +254,7 @@ void StyleConfig::updateChanged()
     else if (_tabsHeight->value() != StyleConfigData::tabsHeight())
         modified = true;
 
-    if (_shadowSize->currentIndex() == 0 || _shadowIntensity->currentIndex() == 0) {
+    if (_shadowSize->currentIndex() == 0) {
         _shadowColor->setEnabled(false);
         _shadowIntensity->setEnabled(false);
         _shadowStrength->setEnabled(false);
@@ -313,7 +313,7 @@ void StyleConfig::load()
         }
     }
     _shadowSize->setCurrentIndex(StyleConfigData::shadowSize());
-    if (_shadowSize->currentIndex() == 0 || _shadowIntensity->currentIndex() == 0) {
+    if (_shadowSize->currentIndex() == 0) {
         _shadowColor->setEnabled(false);
         _shadowIntensity->setEnabled(false);
         _shadowStrength->setEnabled(false);

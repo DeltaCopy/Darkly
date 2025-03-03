@@ -35,7 +35,6 @@
     <!-- shadow intensity -->
      <entry name="ShadowIntensity" type = "Enum">
        <choices>
-          <choice name="Off"/>
           <choice name="Low"/>
           <choice name="Medium"/>
           <choice name="High"/>

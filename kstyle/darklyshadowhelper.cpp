@@ -94,8 +94,6 @@ CompositeShadowParams ShadowHelper::lookupShadowParams(int shadowSizeEnum)
 int ShadowHelper::lookupIntensityParams(int shadowIntensityEnum)
 {
     switch (shadowIntensityEnum) {
-    case StyleConfigData::Off:
-        return 0;
     case StyleConfigData::Low:
         return 1;
     case StyleConfigData::Medium:
@@ -239,7 +237,7 @@ TileSet ShadowHelper::shadowTiles(QWidget *widget)
 
     const QColor color = StyleConfigData::shadowColor();
 
-    // shadowIntensity {Off, Low, Medium, High, Maximum}
+    // shadowIntensity {Low, Medium, High, Maximum}
     const qreal intensityParams = lookupIntensityParams(StyleConfigData::shadowIntensity());
     const qreal strength = static_cast<qreal>(StyleConfigData::shadowStrength() * intensityParams) / 255.0;
 

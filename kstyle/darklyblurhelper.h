@@ -46,7 +46,7 @@ class BlurHelper : public QObject
 
 public:
     //! constructor
-    BlurHelper(QObject *);
+    BlurHelper(QObject *, Helper &);
 
     //! register widget
     void registerWidget(QWidget *, const bool isDolphin);
@@ -86,6 +86,8 @@ protected:
 private:
     bool _isDolphin = false;
     bool _translucentTitlebar = false;
+    //* helper
+    Helper &_helper;
 };
 
 }

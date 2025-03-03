@@ -204,7 +204,8 @@ public:
     void renderSidePanelFrame(QPainter *, const QRect &, const QColor &outline, Side) const;
 
     //* menu frame
-    void renderMenuFrame(QPainter *, const QRect &, const QColor &color, const QColor &outline, bool roundCorners = true) const;
+    void renderMenuFrame(QPainter *, const QRect &, const QColor &color, const QColor &outline, bool roundCorners = true, Qt::Edges seamlessEdges = Qt::Edges())
+        const;
 
     //* outline for widgets
     void renderOutline(QPainter *painter, const QRectF &rect, const int radius, const int outlineStrength) const;
@@ -431,6 +432,10 @@ public:
                         qreal devicePixelRatio,
                         QIcon::Mode mode = QIcon::Normal,
                         QIcon::State state = QIcon::Off);
+
+    QRegion menuFrameRegion(const QWidget *widget);
+
+    static Qt::Edges menuSeamlessEdges(const QWidget *);
 
 protected:
     //* return rounded path in a given rect, with only selected corners rounded, and for a given radius

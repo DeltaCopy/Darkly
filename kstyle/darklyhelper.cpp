@@ -525,7 +525,7 @@ void Helper::renderSidePanelFrame(QPainter *painter, const QRect &rect, const QC
 }
 
 //______________________________________________________________________________
-void Helper::renderMenuFrame(QPainter *painter, const QRect &rect, const QColor &color, const QColor &outline, bool roundCorners) const
+void Helper::renderMenuFrame(QPainter *painter, const QRect &rect, const QColor &color, const QColor &outline, bool roundCorners, Qt::Edges seamlessEdges) const
 {
     // set brush
     if (color.isValid())
@@ -537,6 +537,12 @@ void Helper::renderMenuFrame(QPainter *painter, const QRect &rect, const QColor 
         painter->setRenderHint(QPainter::Antialiasing);
         QRectF frameRect(rect);
         qreal radius(frameRadius(PenWidth::NoPen));
+
+        frameRect.adjust( //
+            seamlessEdges.testFlag(Qt::LeftEdge) ? -radius : 0,
+            seamlessEdges.testFlag(Qt::TopEdge) ? -radius : 0,
+            seamlessEdges.testFlag(Qt::RightEdge) ? radius : 0,
+            seamlessEdges.testFlag(Qt::BottomEdge) ? radius : 0);
 
         painter->setPen(Qt::NoPen);
 
@@ -557,6 +563,13 @@ void Helper::renderMenuFrame(QPainter *painter, const QRect &rect, const QColor 
     } else {
         painter->setRenderHint(QPainter::Antialiasing, false);
         QRect frameRect(rect);
+
+        frameRect.adjust( //
+            seamlessEdges.testFlag(Qt::LeftEdge) ? 1 : 0,
+            seamlessEdges.testFlag(Qt::TopEdge) ? 1 : 0,
+            seamlessEdges.testFlag(Qt::RightEdge) ? -1 : 0,
+            seamlessEdges.testFlag(Qt::BottomEdge) ? -1 : 0);
+
         if (outline.isValid()) {
             painter->setPen(outline);
             frameRect.adjust(0, 0, -1, -1);
@@ -566,6 +579,54 @@ void Helper::renderMenuFrame(QPainter *painter, const QRect &rect, const QColor 
 
         painter->drawRect(frameRect);
     }
+}
+
+//______________________________________________________________________________
+QRegion Helper::menuFrameRegion(const QWidget *widget)
+{
+    if (!widget) {
+        return {};
+    }
+
+    const bool hasAlpha(hasAlphaChannel(widget));
+    const auto seamlessEdges = menuSeamlessEdges(widget);
+    const auto roundCorners = hasAlpha;
+
+    if (roundCorners) {
+        QRectF frameRect(widget->rect());
+
+        qreal radius(frameRadius(PenWidth::NoPen));
+
+        frameRect.adjust( //
+            seamlessEdges.testFlag(Qt::LeftEdge) ? -radius : 0,
+            seamlessEdges.testFlag(Qt::TopEdge) ? -radius : 0,
+            seamlessEdges.testFlag(Qt::RightEdge) ? radius : 0,
+            seamlessEdges.testFlag(Qt::BottomEdge) ? radius : 0);
+
+        // outline is always valid/drawn
+        frameRect = strokedRect(frameRect);
+        radius = frameRadiusForNewPenWidth(radius, PenWidth::Frame);
+
+        QPainterPath path;
+        path.addRoundedRect(frameRect, radius, radius);
+        return QRegion(path.toFillPolygon().toPolygon()).intersected(widget->rect());
+    }
+
+    return QRegion(widget->rect());
+}
+
+//______________________________________________________________________________
+Qt::Edges Helper::menuSeamlessEdges(const QWidget *widget)
+{
+    if (widget) {
+        auto edges = widget->property(PropertyNames::menuSeamlessEdges).value<Qt::Edges>();
+        // Fallback to older property
+        if (edges == Qt::Edges() && widget->property(PropertyNames::isTopMenu).toBool()) {
+            edges = Qt::TopEdge;
+        }
+        return edges;
+    }
+    return Qt::Edges();
 }
 
 //______________________________________________________________________________

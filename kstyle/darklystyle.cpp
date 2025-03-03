@@ -611,7 +611,7 @@ int Style::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWi
         }
 
         if (qobject_cast<const QMenu *>(widget))
-            return 0;
+            return StyleConfigData::cornerRadius() > 1 ? 4 : 0;
         if (qobject_cast<const QLineEdit *>(widget))
             return Metrics::LineEdit_FrameWidth;
         else if (isControl) {

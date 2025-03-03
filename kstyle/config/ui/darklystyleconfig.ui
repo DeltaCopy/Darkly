@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>670</width>
-    <height>482</height>
+    <height>484</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -1346,7 +1346,7 @@
       <widget class="QCheckBox" name="_widgetDrawShadow">
        <property name="geometry">
         <rect>
-         <x>10</x>
+         <x>20</x>
          <y>10</y>
          <width>339</width>
          <height>24</height>
@@ -1396,7 +1396,7 @@
           <x>10</x>
           <y>30</y>
           <width>591</width>
-          <height>178</height>
+          <height>198</height>
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
@@ -1558,6 +1558,9 @@
            </item>
            <item>
             <widget class="QComboBox" name="_shadowIntensity">
+             <property name="currentIndex">
+              <number>2</number>
+             </property>
              <item>
               <property name="text">
                <string>Off</string>

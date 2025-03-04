@@ -81,7 +81,13 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_toolBarOpacitySpinBox, SIGNAL(valueChanged(int)), _toolBarOpacity, SLOT(setValue(int)));
 
     connect(_kTextEditDrawFrame, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+
     connect(_widgetDrawShadow, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_shadowSize, SIGNAL(currentIndexChanged(int)), SLOT(updateChanged()));
+    connect(_shadowColor, &KColorCombo::activated, this, &StyleConfig::updateChanged);
+    connect(_shadowStrength, SIGNAL(valueChanged(int)), _shadowStrength, SLOT(setValue(int)));
+    connect(_shadowIntensity, SIGNAL(currentIndexChanged(int)), SLOT(updateChanged()));
+
     connect(_scrollableMenu, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_oldTabbar, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_adjustToDarkThemes, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
@@ -122,6 +128,10 @@ void StyleConfig::save()
     StyleConfigData::setButtonSize(_buttonSize->value());
     StyleConfigData::setKTextEditDrawFrame(_kTextEditDrawFrame->isChecked());
     StyleConfigData::setWidgetDrawShadow(_widgetDrawShadow->isChecked());
+    StyleConfigData::setShadowSize(_shadowSize->currentIndex());
+    StyleConfigData::setShadowColor(_shadowColor->color());
+    StyleConfigData::setShadowStrength(_shadowStrength->value());
+    StyleConfigData::setShadowIntensity(_shadowIntensity->currentIndex());
     StyleConfigData::setScrollableMenu(_scrollableMenu->isChecked());
     StyleConfigData::setOldTabbar(_oldTabbar->isChecked());
     StyleConfigData::setAdjustToDarkThemes(_adjustToDarkThemes->isChecked());
@@ -215,6 +225,14 @@ void StyleConfig::updateChanged()
         modified = true;
     else if (_widgetDrawShadow->isChecked() != StyleConfigData::widgetDrawShadow())
         modified = true;
+    else if (_shadowSize->currentIndex() != StyleConfigData::shadowSize()) {
+        modified = true;
+    } else if (_shadowColor->color() != StyleConfigData::shadowColor())
+        modified = true;
+    else if (_shadowStrength->value() != StyleConfigData::shadowStrength())
+        modified = true;
+    else if (_shadowIntensity->currentIndex() != StyleConfigData::shadowIntensity())
+        modified = true;
     else if (_scrollableMenu->isChecked() != StyleConfigData::scrollableMenu())
         modified = true;
     else if (_oldTabbar->isChecked() != StyleConfigData::oldTabbar())
@@ -236,6 +254,15 @@ void StyleConfig::updateChanged()
     else if (_tabsHeight->value() != StyleConfigData::tabsHeight())
         modified = true;
 
+    if (_shadowSize->currentIndex() == 0) {
+        _shadowColor->setEnabled(false);
+        _shadowIntensity->setEnabled(false);
+        _shadowStrength->setEnabled(false);
+    } else {
+        _shadowColor->setEnabled(true);
+        _shadowIntensity->setEnabled(true);
+        _shadowStrength->setEnabled(true);
+    }
 
     emit changed(modified);
 }
@@ -272,6 +299,28 @@ void StyleConfig::load()
     _buttonSize->setValue(StyleConfigData::buttonSize());
     _kTextEditDrawFrame->setChecked(StyleConfigData::kTextEditDrawFrame());
     _widgetDrawShadow->setChecked(StyleConfigData::widgetDrawShadow());
+    for (QString &item : _shadowSizes) {
+        if (item == "None") {
+            _shadowSize->addItem(item, "ShadowNone");
+        } else if (item == "Small") {
+            _shadowSize->addItem(item, "ShadowSmall");
+        } else if (item == "Medium") {
+            _shadowSize->addItem(item, "ShadowMedium");
+        } else if (item == "Large") {
+            _shadowSize->addItem(item, "ShadowLarge");
+        } else if (item == "VeryLarge") {
+            _shadowSize->addItem(item, "ShadowVeryLarge");
+        }
+    }
+    _shadowSize->setCurrentIndex(StyleConfigData::shadowSize());
+    if (_shadowSize->currentIndex() == 0) {
+        _shadowColor->setEnabled(false);
+        _shadowIntensity->setEnabled(false);
+        _shadowStrength->setEnabled(false);
+    }
+    _shadowColor->setColor(StyleConfigData::shadowColor());
+    _shadowStrength->setValue(StyleConfigData::shadowStrength());
+    _shadowIntensity->setCurrentIndex(StyleConfigData::shadowIntensity());
     _scrollableMenu->setChecked(StyleConfigData::scrollableMenu());
     _oldTabbar->setChecked(StyleConfigData::oldTabbar());
     _adjustToDarkThemes->setChecked(StyleConfigData::adjustToDarkThemes());

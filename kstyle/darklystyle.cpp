@@ -3402,15 +3402,25 @@ QSize Style::menuItemSizeFromContents(const QStyleOption *option, const QSize &c
      * First calculate the intrinsic size of the item.
      * this must be kept consistent with what's in drawMenuItemControl
      */
-    QSize size(contentsSize);
     switch (menuItemOption->menuItemType) {
     case QStyleOptionMenuItem::Normal:
     case QStyleOptionMenuItem::DefaultItem:
     case QStyleOptionMenuItem::SubMenu: {
+        QString text = menuItemOption->text;
+        qsizetype acceleratorSeparatorPos = text.indexOf(QLatin1Char('\t'));
+        const bool hasAccelerator = acceleratorSeparatorPos >= 0;
+        if (hasAccelerator) {
+            text = text.left(acceleratorSeparatorPos);
+        }
+
+        QFontMetrics fm(menuItemOption->font);
+        QSize size = fm.boundingRect({}, Qt::TextHideMnemonic, text).size();
+
         int iconWidth = 0;
-        if (showIconsInMenuItems())
+        if (showIconsInMenuItems()) {
             iconWidth = isQtQuickControl(option, widget) ? qMax(pixelMetric(PM_SmallIconSize, option, widget), menuItemOption->maxIconWidth)
                                                          : menuItemOption->maxIconWidth;
+        }
 
         int leftColumnWidth = 0;
 
@@ -3424,11 +3434,6 @@ QSize Style::menuItemSizeFromContents(const QStyleOption *option, const QSize &c
             leftColumnWidth += Metrics::CheckBox_Size + Metrics::MenuItem_ItemSpacing;
         }
 
-        // add spacing when there is no icon or checkbox
-        if (menuItemOption->menuHasCheckableItems == false && showIconsInMenuItems() == false) {
-            leftColumnWidth += 3 * Metrics::MenuItem_ItemSpacing;
-        }
-
         // add spacing for accelerator
         /*
          * Note:
@@ -3437,12 +3442,12 @@ QSize Style::menuItemSizeFromContents(const QStyleOption *option, const QSize &c
          * sizeFromContents() for each menu item in the menu to be shown
          * ( see QMenuPrivate::calcActionRects() )
          */
-        const bool hasAccelerator(menuItemOption->text.indexOf(QLatin1Char('\t')) >= 0);
-        if (hasAccelerator)
+        if (hasAccelerator) {
             size.rwidth() += Metrics::MenuItem_AcceleratorSpace;
+        }
 
         // right column
-        const int rightColumnWidth = Metrics::MenuButton_IndicatorWidth + Metrics::MenuItem_ItemSpacing * 2;
+        const int rightColumnWidth = Metrics::MenuButton_IndicatorWidth + Metrics::MenuItem_ItemSpacing;
         size.rwidth() += leftColumnWidth + rightColumnWidth;
 
         // make sure height is large enough for icon and arrow
@@ -3453,25 +3458,39 @@ QSize Style::menuItemSizeFromContents(const QStyleOption *option, const QSize &c
     }
 
     case QStyleOptionMenuItem::Separator: {
-        if (menuItemOption->text.isEmpty() && menuItemOption->icon.isNull()) {
-            return expandSize(QSize(0, 1), Metrics::MenuItem_MarginWidth, Metrics::MenuItem_MarginHeight);
+        // contentsSize for separators in QMenuPrivate::updateActionRects() is {2,2}
+        // We choose to override that.
+        // Have at least 1px for separator line.
+        int w = 1;
+        int h = 1;
 
-        } else {
-            // build toolbutton option
-            const QStyleOptionToolButton toolButtonOption(separatorMenuItemOption(menuItemOption, widget));
+        // If the menu item is a section, add width for text
+        // and make height the same as other menu items, plus extra top padding.
+        if (!menuItemOption->text.isEmpty()) {
+            auto font = menuItemOption->font;
+            font.setBold(true);
+            QFontMetrics fm(font);
+            QRect textRect = fm.boundingRect({}, Qt::TextSingleLine | Qt::TextHideMnemonic, menuItemOption->text);
+            w = qMax(w, textRect.width());
+            h = qMax(h, fm.height());
 
-            // make sure height is large enough for icon and text
-            const int iconWidth(menuItemOption->maxIconWidth);
-            const int textHeight(menuItemOption->fontMetrics.height());
-            if (!menuItemOption->icon.isNull())
-                size.setHeight(qMax(size.height(), iconWidth));
-            if (!menuItemOption->text.isEmpty()) {
-                size.setHeight(qMax(size.height(), textHeight));
-                size.setWidth(qMax(size.width(), menuItemOption->fontMetrics.boundingRect(menuItemOption->text).width()));
+            if (showIconsInMenuItems()) {
+                int iconWidth = menuItemOption->maxIconWidth;
+                if (isQtQuickControl(option, widget)) {
+                    iconWidth = qMax(pixelMetric(PM_SmallIconSize, option, widget), iconWidth);
+                }
+                h = qMax(h, iconWidth);
             }
 
-            return sizeFromContents(CT_ToolButton, &toolButtonOption, size, widget);
+            if (menuItemOption->menuHasCheckableItems) {
+                h = qMax(h, int(Metrics::CheckBox_Size));
+            }
+
+            h = qMax(h, int(Metrics::MenuButton_IndicatorWidth));
+            h += Metrics::MenuItem_MarginHeight; // extra top padding
         }
+
+        return {w + Metrics::MenuItem_MarginWidth * 2, h + Metrics::MenuItem_MarginHeight * 2};
     }
 
     // for all other cases, return input
@@ -5489,6 +5508,7 @@ bool Style::drawMenuBarItemControl(const QStyleOption *option, QPainter *painter
         }
     }
 
+    painter->restore();
     return true;
 }
 

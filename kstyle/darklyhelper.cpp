@@ -20,6 +20,7 @@
 #include "darklyhelper.h"
 
 #include "darkly.h"
+#include "darklypropertynames.h"
 
 #include <KColorUtils>
 #include <KIconLoader>

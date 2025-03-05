@@ -654,7 +654,7 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
             p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
             p.drawRoundedRect(copy.adjusted(0, 1, 0, 0), m_internalSettings->cornerRadius(), m_internalSettings->cornerRadius());
 
-            painter->drawPixmap(copy.height(), copy.width(), pix);
+            painter->drawPixmap(copy, pix);
         }
     }
 

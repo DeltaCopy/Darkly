@@ -49,11 +49,6 @@ Button::Button(DecorationButtonType type, Decoration *decoration, QObject *paren
         setOpacity(value.toReal());
     });
 
-    // setup default geometry
-    const int height = decoration->buttonHeight();
-    setGeometry(QRect(0, 0, height, height));
-    setIconSize(QSize(height, height));
-
     // connections
     connect(decoration->window(), SIGNAL(iconChanged(QIcon)), this, SLOT(update()));
     connect(decoration->settings().get(), &KDecoration3::DecorationSettings::reconfigured, this, &Button::reconfigure);
@@ -66,10 +61,7 @@ Button::Button(DecorationButtonType type, Decoration *decoration, QObject *paren
 Button::Button(QObject *parent, const QVariantList &args)
     : Button(args.at(0).value<DecorationButtonType>(), args.at(1).value<Decoration *>(), parent)
 {
-    m_flag = FlagStandalone;
-    //! icon size must return to !valid because it was altered from the default constructor,
-    //! in Standalone mode the button is not using the decoration metrics but its geometry
-    m_iconSize = QSize(-1, -1);
+    setGeometry(QRectF(QPointF(0, 0), preferredSize()));
 }
 
 //__________________________________________________________________
@@ -77,34 +69,35 @@ Button *Button::create(DecorationButtonType type, KDecoration3::Decoration *deco
 {
     if (auto d = qobject_cast<Decoration *>(decoration)) {
         Button *b = new Button(type, d, parent);
+        const auto c = d->window();
         switch (type) {
         case DecorationButtonType::Close:
-            b->setVisible(d->window()->isCloseable());
-            QObject::connect(d->window(), &KDecoration3::DecoratedWindow::closeableChanged, b, &Darkly::Button::setVisible);
+            b->setVisible(c->isCloseable());
+            QObject::connect(c, &KDecoration3::DecoratedWindow::closeableChanged, b, &Darkly::Button::setVisible);
             break;
 
         case DecorationButtonType::Maximize:
-            b->setVisible(d->window()->isMaximizeable());
-            QObject::connect(d->window(), &KDecoration3::DecoratedWindow::maximizeableChanged, b, &Darkly::Button::setVisible);
+            b->setVisible(c->isMaximizeable());
+            QObject::connect(c, &KDecoration3::DecoratedWindow::maximizeableChanged, b, &Darkly::Button::setVisible);
             break;
 
         case DecorationButtonType::Minimize:
-            b->setVisible(d->window()->isMinimizeable());
-            QObject::connect(d->window(), &KDecoration3::DecoratedWindow::minimizeableChanged, b, &Darkly::Button::setVisible);
+            b->setVisible(c->isMinimizeable());
+            QObject::connect(c, &KDecoration3::DecoratedWindow::minimizeableChanged, b, &Darkly::Button::setVisible);
             break;
 
         case DecorationButtonType::ContextHelp:
-            b->setVisible(d->window()->providesContextHelp());
-            QObject::connect(d->window(), &KDecoration3::DecoratedWindow::providesContextHelpChanged, b, &Darkly::Button::setVisible);
+            b->setVisible(c->providesContextHelp());
+            QObject::connect(c, &KDecoration3::DecoratedWindow::providesContextHelpChanged, b, &Darkly::Button::setVisible);
             break;
 
         case DecorationButtonType::Shade:
-            b->setVisible(d->window()->isShadeable());
-            QObject::connect(d->window(), &KDecoration3::DecoratedWindow::shadeableChanged, b, &Darkly::Button::setVisible);
+            b->setVisible(c->isShadeable());
+            QObject::connect(c, &KDecoration3::DecoratedWindow::shadeableChanged, b, &Darkly::Button::setVisible);
             break;
 
         case DecorationButtonType::Menu:
-            QObject::connect(d->window(), &KDecoration3::DecoratedWindow::iconChanged, b, [b]() {
+            QObject::connect(c, &KDecoration3::DecoratedWindow::iconChanged, b, [b]() {
                 b->update();
             });
             break;
@@ -127,40 +120,35 @@ void Button::paint(QPainter *painter, const QRectF &repaintRegion)
     if (!decoration())
         return;
 
-    painter->save();
-
-    // translate from offset
-    if (m_flag == FlagFirstInList)
-        painter->translate(m_offset);
-    else
-        painter->translate(0, m_offset.y());
-
-    if (!m_iconSize.isValid())
-        m_iconSize = geometry().size().toSize();
-
     // menu button
-    if (type() == DecorationButtonType::Menu) {
-        const QRectF iconRect(geometry().topLeft(), m_iconSize);
+    switch (type()) {
+    case KDecoration3::DecorationButtonType::Menu: {
+        const QRectF iconRect = geometry().marginsRemoved(m_padding);
+        const auto c = decoration()->window();
         if (auto deco = qobject_cast<Decoration *>(decoration())) {
             const QPalette activePalette = KIconLoader::global()->customPalette();
-            QPalette palette = decoration()->window()->palette();
+            QPalette palette = c->palette();
             palette.setColor(QPalette::WindowText, deco->fontColor());
             KIconLoader::global()->setCustomPalette(palette);
-            decoration()->window()->icon().paint(painter, iconRect.toRect());
+            c->icon().paint(painter, iconRect.toRect());
             if (activePalette == QPalette()) {
                 KIconLoader::global()->resetPalette();
             } else {
                 KIconLoader::global()->setCustomPalette(palette);
             }
         } else {
-            decoration()->window()->icon().paint(painter, iconRect.toRect());
+            c->icon().paint(painter, iconRect.toRect());
         }
-
-    } else {
-        drawIcon(painter);
+        break;
     }
-
-    painter->restore();
+    case KDecoration3::DecorationButtonType::Spacer:
+        break;
+    default:
+        painter->save();
+        drawIcon(painter);
+        painter->restore();
+        break;
+    }
 }
 
 //__________________________________________________________________
@@ -171,11 +159,12 @@ void Button::drawIcon(QPainter *painter) const
     /*
     scale painter so that its window matches QRect( -1, -1, 20, 20 )
     this makes all further rendering and scaling simpler
-    all further rendering is preformed inside QRect( 0, 0, 18, 18 )
+    all further rendering is performed inside QRect( 0, 0, 18, 18 )
     */
-    painter->translate(geometry().topLeft());
+    const QRectF rect = geometry().marginsRemoved(m_padding);
+    painter->translate(rect.topLeft());
 
-    const qreal width(m_iconSize.width());
+    const qreal width(rect.width());
     painter->scale(width / 20, width / 20);
     painter->translate(1, 1);
 
@@ -235,8 +224,9 @@ void Button::drawIcon(QPainter *painter) const
                 // center dot
                 QColor backgroundColor(this->backgroundColor());
                 auto d = qobject_cast<Decoration *>(decoration());
-                if (!backgroundColor.isValid() && d)
+                if (!backgroundColor.isValid() && d) {
                     backgroundColor = d->titleBarColor();
+                }
 
                 if (backgroundColor.isValid()) {
                     painter->setBrush(backgroundColor);
@@ -388,8 +378,20 @@ void Button::reconfigure()
 {
     // animation
     auto d = qobject_cast<Decoration *>(decoration());
-    if (d)
-        m_animation->setDuration(d->internalSettings()->animationsDuration());
+    if (!d) {
+        return;
+    }
+
+    switch (type()) {
+    case KDecoration3::DecorationButtonType::Spacer:
+        setPreferredSize(QSizeF(d->buttonSize() * 0.5, d->buttonSize()));
+        break;
+    default:
+        setPreferredSize(QSizeF(d->buttonSize(), d->buttonSize()));
+        break;
+    }
+
+    m_animation->setDuration(d->internalSettings()->animationsDuration());
 }
 
 //__________________________________________________________________

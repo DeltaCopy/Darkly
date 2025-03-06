@@ -89,9 +89,9 @@ public:
     }
 
     //* set icon size
-    void setIconSize(const QSize &value)
+    void setIconSize(const QSizeF &size)
     {
-        m_iconSize = value;
+        m_iconSize = size;
     }
 
     //*@name active state change animation
@@ -107,6 +107,34 @@ public:
     qreal opacity() const
     {
         return m_opacity;
+    }
+
+    //* padding
+    void setPadding(const QMargins &value)
+    {
+        m_padding = value;
+    }
+
+    //* left padding, for rendering
+    void setLeftPadding(qreal value)
+    {
+        m_padding.setLeft(value);
+    }
+
+    //* right padding, for rendering
+    void setRightPadding(qreal value)
+    {
+        m_padding.setRight(value);
+    }
+
+    void setPreferredSize(const QSizeF &size)
+    {
+        m_preferredSize = size;
+    }
+
+    QSizeF preferredSize() const
+    {
+        return m_preferredSize;
     }
 
     //@}
@@ -140,11 +168,17 @@ private:
     //* vertical offset (for rendering)
     QPointF m_offset;
 
-    //* icon size
-    QSize m_iconSize;
-
     //* active state change opacity
     qreal m_opacity = 0;
+
+    //* padding (for rendering)
+    QMargins m_padding;
+
+    //* icon size
+    QSizeF m_iconSize;
+
+    //* implicit size
+    QSizeF m_preferredSize;
 };
 
 } // namespace

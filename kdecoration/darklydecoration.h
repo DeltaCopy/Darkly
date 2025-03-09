@@ -22,6 +22,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
 #include "darkly.h"
 #include "darklysettings.h"
 
@@ -66,8 +67,8 @@ public:
     //* caption height
     int captionHeight() const;
 
-    //* button height
-    int buttonHeight() const;
+    //* button size
+    int buttonSize() const;
 
     //*@name active state change animation
     //@{
@@ -124,16 +125,17 @@ private Q_SLOTS:
 
 private:
     //* return the rect in which caption will be drawn
-    QPair<QRect, Qt::Alignment> captionRect() const;
+    QPair<QRectF, Qt::Alignment> captionRect() const;
 
     void createButtons();
     void calculateWindowAndTitleBarShapes(const bool windowShapeOnly = false);
     void paintTitleBar(QPainter *painter, const QRectF &repaintRegion);
     void createShadow();
+    void setScaledCornerRadius();
 
     //*@name border size
     //@{
-    int borderSize(bool bottom = false) const;
+    qreal borderSize(bool bottom, qreal scale) const;
     inline bool hasBorders() const;
     inline bool hasNoBorders() const;
     inline bool hasNoSideBorders() const;

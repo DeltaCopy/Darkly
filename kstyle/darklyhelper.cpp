@@ -20,6 +20,7 @@
 #include "darklyhelper.h"
 
 #include "darkly.h"
+#include "darklypropertynames.h"
 
 #include <KColorUtils>
 #include <KIconLoader>
@@ -1813,7 +1814,8 @@ bool Helper::hasAlphaChannel(const QWidget *widget) const
 //____________________________________________________________________
 bool Helper::shouldWindowHaveAlpha(const QPalette &palette, bool isDolphin) const
 {
-    if (_activeTitleBarColor.alphaF() < 1.0 || (StyleConfigData::dolphinSidebarOpacity() < 100 && isDolphin) || palette.color(QPalette::Window).alpha() < 255) {
+    if (_activeTitleBarColor.alphaF() < 1.0 || (StyleConfigData::dolphinSidebarOpacity() < 100 && isDolphin) || palette.color(QPalette::Window).alpha() < 255
+        || (StyleConfigData::toolBarOpacity() < 100) || (StyleConfigData::menuBarOpacity() < 100)) {
         return true;
     }
     return false;

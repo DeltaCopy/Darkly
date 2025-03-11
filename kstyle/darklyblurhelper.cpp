@@ -157,7 +157,6 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
         return roundedRegion(rect, StyleConfigData::cornerRadius() + 1, true, true, true, true);
     } else {
         // blur entire window
-        // QT 6.8 now causes issues here when the alpha channel of the color scheme is < 255 with systemsettings
         if (widget->palette().color(QPalette::Window).alpha() < 255)
             return roundedRegion(rect, StyleConfigData::cornerRadius(), false, false, true, true);
 
@@ -165,79 +164,8 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
         QRegion region;
 
         // toolbar and menubar
-        if (_translucentTitlebar) {
-            // menubar
-            int menubarHeight = 0;
-            if (QMainWindow *mw = qobject_cast<QMainWindow *>(widget)) {
-                if (QWidget *mb = mw->menuWidget()) {
-                    if (mb->isVisible()) {
-                        region += mb->rect();
-                        menubarHeight = mb->height();
-                    }
-                }
-            }
-
-            QList<QToolBar *> toolbars = widget->window()->findChildren<QToolBar *>(QString(), Qt::FindDirectChildrenOnly);
-            QRect mainToolbar = QRect();
-
-            // just assuming
-            Qt::Orientation orientation = Qt::Vertical;
-
-            // find which one is the main toolbar
-            for (auto tb : toolbars) {
-                // single toolbar
-                if (tb && tb->isVisible() && toolbars.length() == 1) {
-                    region += QRegion(QRect(tb->pos(), tb->rect().size()));
-                    orientation = tb->orientation();
-                }
-
-                else if (tb && tb->isVisible()) {
-                    if (mainToolbar.isNull()) {
-                        mainToolbar = QRect(tb->pos(), tb->rect().size());
-                        orientation = tb->orientation();
-                    }
-
-                    // test against the previous best caditate
-                    else {
-                        if ((tb->y() < mainToolbar.y()) || (tb->y() == mainToolbar.y() && tb->x() < mainToolbar.x())) {
-                            mainToolbar = QRect(tb->pos(), tb->rect().size());
-                            orientation = tb->orientation();
-                        }
-                    }
-                }
-            }
-
-            if (mainToolbar.isValid()) {
-                // make adjustments
-                if (orientation == Qt::Horizontal) {
-                    // toolbar may be at the top but not ocupy the whole avaliable width
-                    // so we blur the whole area instead
-                    if (mainToolbar.y() == 0 || mainToolbar.y() == menubarHeight) {
-                        mainToolbar.setX(0);
-                        mainToolbar.setWidth(widget->width());
-                        region += mainToolbar;
-                    }
-
-                    // round corners if it is at the bottom
-                    else if (mainToolbar.y() + mainToolbar.height() == widget->height())
-                        region += roundedRegion(mainToolbar, StyleConfigData::cornerRadius(), false, false, false, true);
-
-                    // else
-                    //     region += mainToolbar;
-
-                } else {
-                    // round bottom left
-                    if (mainToolbar.x() == 0)
-                        region += roundedRegion(mainToolbar, StyleConfigData::cornerRadius(), false, false, true, false);
-
-                    // round bottom right
-                    else if (mainToolbar.x() + mainToolbar.width() == widget->width())
-                        region += roundedRegion(mainToolbar, StyleConfigData::cornerRadius(), false, false, false, true);
-
-                    // no round corners
-                    // else region += mainToolbar; //FIXME: is this valid?
-                }
-            }
+        if (_translucentTitlebar || StyleConfigData::blurBars()) {
+            region = toolBarRegion(widget);
         }
 
         // dolphin's sidebar
@@ -328,6 +256,110 @@ void BlurHelper::update(QWidget *widget) const
 
     widget->winId(); // force creation of the window handle
     KWindowEffects::enableBlurBehind(widget->windowHandle(), true, region);
+
+    // force update
+    if (widget->isVisible()) {
+        widget->update();
+    }
+}
+
+//___________________________________________________________
+QRegion BlurHelper::toolBarRegion(QWidget *widget) const
+{
+    QRegion region;
+    // menubar
+    int menubarHeight = 0;
+    if (QMainWindow *mw = qobject_cast<QMainWindow *>(widget)) {
+        if (QWidget *mb = mw->menuWidget()) {
+            if (mb->isVisible()) {
+                region += mb->rect();
+                menubarHeight = mb->height();
+            }
+        }
+    }
+
+    QList<QToolBar *> toolbars = widget->window()->findChildren<QToolBar *>(QString(), Qt::FindDirectChildrenOnly);
+    QRect mainToolbar = QRect();
+
+    // just assuming
+    Qt::Orientation orientation = Qt::Vertical;
+
+    // find which one is the main toolbar
+    for (auto tb : toolbars) {
+        // single toolbar
+        if (tb && tb->isVisible() && toolbars.length() == 1) {
+            region += QRegion(QRect(tb->pos(), tb->rect().size()));
+            orientation = tb->orientation();
+        }
+
+        else if (tb && tb->isVisible()) {
+            if (mainToolbar.isNull()) {
+                mainToolbar = QRect(tb->pos(), tb->rect().size());
+                orientation = tb->orientation();
+            }
+
+            // test against the previous best caditate
+            else {
+                if ((tb->y() < mainToolbar.y()) || (tb->y() == mainToolbar.y() && tb->x() < mainToolbar.x())) {
+                    mainToolbar = QRect(tb->pos(), tb->rect().size());
+                    orientation = tb->orientation();
+                }
+            }
+        }
+    }
+
+    if (mainToolbar.isValid()) {
+        // make adjustments
+        if (orientation == Qt::Horizontal) {
+            // toolbar may be at the top but not ocupy the whole avaliable width
+            // so we blur the whole area instead
+            if (mainToolbar.y() == 0 || mainToolbar.y() == menubarHeight) {
+                mainToolbar.setX(0);
+                mainToolbar.setWidth(widget->width());
+                region += mainToolbar;
+            }
+
+            // round corners if it is at the bottom
+            else if (mainToolbar.y() + mainToolbar.height() == widget->height())
+                region += roundedRegion(mainToolbar, StyleConfigData::cornerRadius(), false, false, false, true);
+
+            // else
+            //     region += mainToolbar;
+
+        } else {
+            // round bottom left
+            if (mainToolbar.x() == 0)
+                region += roundedRegion(mainToolbar, StyleConfigData::cornerRadius(), false, false, true, false);
+
+            // round bottom right
+            else if (mainToolbar.x() + mainToolbar.width() == widget->width())
+                region += roundedRegion(mainToolbar, StyleConfigData::cornerRadius(), false, false, false, true);
+
+            // no round corners
+            // else region += mainToolbar; //FIXME: is this valid?
+        }
+    }
+
+    return region;
+}
+
+//___________________________________________________________
+void BlurHelper::removeBlur(QWidget *widget) const
+{
+    /*
+    directly from bespin code. Supposedly prevent playing with some 'pseudo-widgets'
+    that have winId matching some other -random- window
+    */
+    if (!(widget->testAttribute(Qt::WA_WState_Created) || widget->internalWinId()))
+        return;
+
+    QRegion region = toolBarRegion(widget);
+
+    if (region.isNull())
+        return;
+
+    widget->winId(); // force creation of the window handle
+    KWindowEffects::enableBlurBehind(widget->windowHandle(), false, region);
 
     // force update
     if (widget->isVisible()) {

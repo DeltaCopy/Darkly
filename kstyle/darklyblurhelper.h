@@ -69,17 +69,6 @@ public:
         _translucentTitlebar = value;
     }
 
-    // force update on specific widget
-    void addBlurOnWidget(QWidget *widget)
-    {
-        if (widget) {
-            update(widget);
-        }
-    }
-
-    // remove blur from region
-    void removeBlur(QWidget *) const;
-
 protected:
     //! install event filter to object, in a unique way
     void addEventFilter(QObject *object)

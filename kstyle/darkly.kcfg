@@ -294,7 +294,7 @@
     </entry>
 
     <entry name="BlurBars" type="Bool">
-        <default>false</default>
+        <default>true</default>
     </entry>
 
     <entry name="AdjustToDarkThemes" type="Bool">

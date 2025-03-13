@@ -75,7 +75,6 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_menuBarOpacity, &QAbstractSlider::valueChanged, this, &StyleConfig::updateChanged);
     connect(_menuBarOpacity, SIGNAL(valueChanged(int)), _menuBarOpacitySpinBox, SLOT(setValue(int)));
     connect(_menuBarOpacitySpinBox, SIGNAL(valueChanged(int)), _menuBarOpacity, SLOT(setValue(int)));
-    connect(_blurBars, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
 
     connect(_toolBarOpacity, &QAbstractSlider::valueChanged, this, &StyleConfig::updateChanged);
     connect(_toolBarOpacity, SIGNAL(valueChanged(int)), _toolBarOpacitySpinBox, SLOT(setValue(int)));
@@ -126,7 +125,6 @@ void StyleConfig::save()
     StyleConfigData::setDolphinSidebarOpacity(_sidebarOpacity->value());
     StyleConfigData::setMenuBarOpacity(_menuBarOpacity->value());
     StyleConfigData::setToolBarOpacity(_toolBarOpacity->value());
-    StyleConfigData::setBlurBars(_blurBars->isChecked());
     StyleConfigData::setButtonSize(_buttonSize->value());
     StyleConfigData::setKTextEditDrawFrame(_kTextEditDrawFrame->isChecked());
     StyleConfigData::setWidgetDrawShadow(_widgetDrawShadow->isChecked());
@@ -221,8 +219,6 @@ void StyleConfig::updateChanged()
     } else if (_toolBarOpacity->value() != StyleConfigData::toolBarOpacity()) {
         modified = true;
         _toolBarOpacitySpinBox->setValue(_toolBarOpacity->value());
-    } else if (_blurBars->isChecked() != StyleConfigData::blurBars()) {
-        modified = true;
     } else if (_kTextEditDrawFrame->isChecked() != StyleConfigData::kTextEditDrawFrame())
         modified = true;
     else if (_tabBarDrawCenteredTabs->isChecked() != StyleConfigData::tabBarDrawCenteredTabs())
@@ -294,7 +290,6 @@ void StyleConfig::load()
     _menuOpacitySpinBox->setValue(StyleConfigData::menuOpacity());
     _sidebarOpacity->setValue(StyleConfigData::dolphinSidebarOpacity());
     _sidebarOpacitySpinBox->setValue(StyleConfigData::dolphinSidebarOpacity());
-    _blurBars->setChecked(StyleConfigData::blurBars());
     _tabBarDrawCenteredTabs->setChecked(StyleConfigData::tabBarDrawCenteredTabs());
     _menuBarOpacity->setValue(StyleConfigData::menuBarOpacity());
     _menuBarOpacitySpinBox->setValue(StyleConfigData::menuBarOpacity());

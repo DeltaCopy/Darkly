@@ -474,21 +474,13 @@ void Style::polish(QWidget *widget)
         widget->setAttribute(Qt::WA_StyledBackground);
     } else if (qobject_cast<QDialogButtonBox *>(widget)) {
         addEventFilter(widget);
-    } else if ((StyleConfigData::blurBars()) && (qobject_cast<QToolBar *>(widget) || qobject_cast<QMenuBar *>(widget))
-               && (StyleConfigData::toolBarOpacity() < 100 || StyleConfigData::menuBarOpacity() < 100)) {
-        // blur toolbar/menubar
-        // handle blur for dolphin differently as the sidebar blur is altered too
-        if (_isDolphin) {
-            _blurHelper->addBlurOnWidget(widget);
-        } else {
-            _blurHelper->registerWidget(widget->window(), _isDolphin);
-        }
-    } else if (!StyleConfigData::blurBars() && (qobject_cast<QToolBar *>(widget) || qobject_cast<QMenuBar *>(widget))) {
-        if (_isDolphin) {
-            _blurHelper->removeBlur(widget);
-        } else {
-            _blurHelper->removeBlur(widget->window());
-        }
+
+    }
+
+    // blur toolbar/menubar
+    else if ((StyleConfigData::blurBars()) && (qobject_cast<QToolBar *>(widget) || qobject_cast<QMenuBar *>(widget))
+             && (StyleConfigData::toolBarOpacity() < 100 || StyleConfigData::menuBarOpacity() < 100)) {
+        _blurHelper->registerWidget(widget->window(), _isDolphin);
     }
 
     if (_toolsAreaManager->hasHeaderColors()) {

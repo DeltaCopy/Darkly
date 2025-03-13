@@ -342,28 +342,4 @@ QRegion BlurHelper::toolBarRegion(QWidget *widget) const
 
     return region;
 }
-
-//___________________________________________________________
-void BlurHelper::removeBlur(QWidget *widget) const
-{
-    /*
-    directly from bespin code. Supposedly prevent playing with some 'pseudo-widgets'
-    that have winId matching some other -random- window
-    */
-    if (!(widget->testAttribute(Qt::WA_WState_Created) || widget->internalWinId()))
-        return;
-
-    QRegion region = toolBarRegion(widget);
-
-    if (region.isNull())
-        return;
-
-    widget->winId(); // force creation of the window handle
-    KWindowEffects::enableBlurBehind(widget->windowHandle(), false, region);
-
-    // force update
-    if (widget->isVisible()) {
-        widget->update();
-    }
-}
 }

@@ -113,6 +113,7 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_sunkenEffect, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_useNewCheckBox, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_documentModeTabs, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_fullOutline, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
 }
 
 //__________________________________________________________________
@@ -165,6 +166,7 @@ void StyleConfig::save()
     StyleConfigData::setSunkenEffect(_sunkenEffect->isChecked());
     StyleConfigData::setUseNewCheckBox(_useNewCheckBox->isChecked());
     StyleConfigData::setDocumentModeTabs(_documentModeTabs->isChecked());
+    StyleConfigData::setFullOutline(_fullOutline->isChecked());
 
     StyleConfigData::self()->save();
 
@@ -295,6 +297,8 @@ void StyleConfig::updateChanged()
         modified = true;
     else if (_documentModeTabs->isChecked() != StyleConfigData::documentModeTabs())
         modified = true;
+    else if (_fullOutline->isChecked() != StyleConfigData::fullOutline())
+        modified = true;
 
     if (_shadowSize->currentIndex() == 0) {
         _shadowColor->setEnabled(false);
@@ -361,6 +365,7 @@ void StyleConfig::load()
     _sunkenEffect->setChecked(StyleConfigData::sunkenEffect());
     _useNewCheckBox->setChecked(StyleConfigData::useNewCheckBox());
     _documentModeTabs->setChecked(StyleConfigData::documentModeTabs());
+    _fullOutline->setChecked(StyleConfigData::fullOutline());
 
     if (!_widgetDrawShadow->isChecked()) {
         _widgetToolBarShadow->setEnabled(false);

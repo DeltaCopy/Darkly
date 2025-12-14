@@ -936,6 +936,13 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QCheckBox" name="_fullOutline">
+           <property name="text">
+            <string>Full outline</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>

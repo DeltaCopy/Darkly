@@ -287,6 +287,19 @@ void Style::polish(QWidget *widget)
         widget->setProperty( "HOVER", false );
     }*/
 
+    // remove auto background from combobox popup
+    if (auto view = const_cast<QAbstractItemView*>(itemViewParent(widget))) {
+        QWidget* w = view;
+        while (w) {
+            if (qobject_cast<QComboBox*>(w)) {
+                view->setAutoFillBackground(false);
+                view->viewport()->setAutoFillBackground(false);
+                break;
+            }
+            w = w->parentWidget();
+        }
+    }
+
     // enforce translucency for drag and drop window
     if (widget->testAttribute(Qt::WA_X11NetWmWindowTypeDND) && _helper->compositingActive()) {
         widget->setAttribute(Qt::WA_TranslucentBackground);
@@ -1812,6 +1825,9 @@ bool Style::eventFilterComboBoxContainer(QWidget *widget, QEvent *event)
         const auto &palette(widget->palette());
         const auto background(_helper->frameBackgroundColor(palette));
         const auto outline(_helper->frameOutlineColor(palette));
+        painter.setCompositionMode(QPainter::CompositionMode_Clear);
+        painter.fillRect(rect, Qt::transparent);
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
     
         const bool hasAlpha(_helper->hasAlphaChannel(widget));
         if (hasAlpha) {

@@ -300,19 +300,19 @@ void Decoration::calculateWindowAndTitleBarShapes(const bool windowShapeOnly)
             m_titleBarPath->addRect(m_titleRect);
 
         } else if (c->isShaded()) {
-            m_titleBarPath->addRoundedRect(m_titleRect, m_internalSettings->cornerRadius(), m_internalSettings->cornerRadius());
+            m_titleBarPath->addRoundedRect(m_titleRect, m_scaledCornerRadius, m_scaledCornerRadius);
 
         } else {
             QPainterPath clipRect;
             clipRect.addRect(m_titleRect);
 
             // the rect is made a little bit larger to be able to clip away the rounded corners at the bottom and sides
-            m_titleBarPath->addRoundedRect(m_titleRect.adjusted(isLeftEdge() ? -m_internalSettings->cornerRadius() : 0,
-                                                                isTopEdge() ? -m_internalSettings->cornerRadius() : 0,
-                                                                isRightEdge() ? m_internalSettings->cornerRadius() : 0,
-                                                                m_internalSettings->cornerRadius()),
-                                           m_internalSettings->cornerRadius(),
-                                           m_internalSettings->cornerRadius());
+            m_titleBarPath->addRoundedRect(m_titleRect.adjusted(isLeftEdge() ? -m_scaledCornerRadius : 0,
+                                                                isTopEdge() ? -m_scaledCornerRadius : 0,
+                                                                isRightEdge() ? m_scaledCornerRadius : 0,
+                                                                m_scaledCornerRadius),
+                                           m_scaledCornerRadius,
+                                           m_scaledCornerRadius);
 
             *m_titleBarPath = m_titleBarPath->intersected(clipRect);
         }
@@ -322,7 +322,7 @@ void Decoration::calculateWindowAndTitleBarShapes(const bool windowShapeOnly)
     m_windowPath->clear(); // clear the path for subsequent calls to this function
     if (!c->isShaded()) {
         if (s->isAlphaChannelSupported() && !isMaximized())
-            m_windowPath->addRoundedRect(rect(), m_internalSettings->cornerRadius(), m_internalSettings->cornerRadius());
+            m_windowPath->addRoundedRect(rect(), m_scaledCornerRadius, m_scaledCornerRadius);
         else
             m_windowPath->addRect(rect());
 
@@ -622,7 +622,7 @@ void Decoration::paint(QPainter *painter, const QRectF &repaintRegion)
             painter->setClipRect(0, borderTop(), size().width(), size().height() - borderTop(), Qt::IntersectClip);
 
         if (s->isAlphaChannelSupported())
-            painter->drawRoundedRect(rect(), m_internalSettings->cornerRadius(), m_internalSettings->cornerRadius());
+            painter->drawRoundedRect(rect(), m_scaledCornerRadius, m_scaledCornerRadius);
         else
             painter->drawRect(rect());
 
@@ -681,10 +681,10 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
             painter->drawLine(m_titleRect.topLeft(), m_titleRect.topRight());
 
         } else if (!c->isShaded()) {
-            QRect copy(m_titleRect.adjusted(isLeftEdge() ? -m_internalSettings->cornerRadius() : 0,
-                                            isTopEdge() ? -m_internalSettings->cornerRadius() : 0,
-                                            isRightEdge() ? m_internalSettings->cornerRadius() : 0,
-                                            m_internalSettings->cornerRadius()));
+            QRect copy(m_titleRect.adjusted(isLeftEdge() ? -m_scaledCornerRadius : 0,
+                                            isTopEdge() ? -m_scaledCornerRadius : 0,
+                                            isRightEdge() ? m_scaledCornerRadius : 0,
+                                            m_scaledCornerRadius));
 
             QPixmap pix = QPixmap(copy.width(), copy.height());
             pix.fill(Qt::transparent);
@@ -693,11 +693,11 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
             p.setRenderHint(QPainter::Antialiasing);
             p.setPen(Qt::NoPen);
             p.setBrush(QColor(255, 255, 255, 30));
-            p.drawRoundedRect(copy, m_internalSettings->cornerRadius(), m_internalSettings->cornerRadius());
+            p.drawRoundedRect(copy, m_scaledCornerRadius, m_scaledCornerRadius);
 
             p.setBrush(Qt::black);
             p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-            p.drawRoundedRect(copy.adjusted(0, 1, 0, 0), m_internalSettings->cornerRadius(), m_internalSettings->cornerRadius());
+            p.drawRoundedRect(copy.adjusted(0, 1, 0, 0), m_scaledCornerRadius, m_scaledCornerRadius);
 
             painter->drawPixmap(copy, pix);
         }
@@ -827,7 +827,7 @@ void Decoration::createShadow()
             BoxShadowRenderer::calculateMinimumBoxSize(params.shadow1.radius).expandedTo(BoxShadowRenderer::calculateMinimumBoxSize(params.shadow2.radius));
 
         BoxShadowRenderer shadowRenderer;
-        shadowRenderer.setBorderRadius(m_internalSettings->cornerRadius() + 0.5);
+        shadowRenderer.setBorderRadius(m_scaledCornerRadius + 0.5);
         shadowRenderer.setBoxSize(boxSize);
 
         const qreal strength = static_cast<qreal>(g_shadowStrength) / 255.0;
@@ -854,13 +854,13 @@ void Decoration::createShadow()
         painter.setPen(withOpacity(g_shadowColor, 0.4 * strength));
         painter.setBrush(Qt::NoBrush);
         painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-        painter.drawRoundedRect(innerRect, m_internalSettings->cornerRadius() - 0.5, m_internalSettings->cornerRadius() - 0.5);
+        painter.drawRoundedRect(innerRect, m_scaledCornerRadius - 0.5, m_scaledCornerRadius - 0.5);
 
         // Mask out inner rect.
         painter.setPen(Qt::NoPen);
         painter.setBrush(Qt::black);
         painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-        painter.drawRoundedRect(innerRect, m_internalSettings->cornerRadius() + 0.5, m_internalSettings->cornerRadius() + 0.5);
+        painter.drawRoundedRect(innerRect, m_scaledCornerRadius + 0.5, m_scaledCornerRadius + 0.5);
 
         painter.end();
 
@@ -901,7 +901,7 @@ void Decoration::setScaledCornerRadius()
     // On X11, the smallSpacing value is used for scaling.
     // On Wayland, this value has constant factor of 2.
     // Removing it will break radius scaling on X11.
-    m_scaledCornerRadius = KDecoration3::snapToPixelGrid(Metrics::Frame_FrameRadius * settings()->smallSpacing(), window()->nextScale());
+    m_scaledCornerRadius = KDecoration3::snapToPixelGrid(m_internalSettings->cornerRadius() * settings()->smallSpacing(), window()->nextScale());
 }
 
 void Decoration::updateScale()

@@ -663,9 +663,17 @@ void Helper::topHighlight(QPainter *painter, const QRectF &rect, const int radiu
 
     p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
     p.setBrush(Qt::black);
-    p.drawRoundedRect(QRect(0, 1, rect.width(), rect.height()), radius, radius);
 
+    if (StyleConfigData::fullOutline())
+    {
+    p.drawRoundedRect(QRect(1, 1, rect.width() - 2, rect.height() - 2), radius, radius);
     painter->drawPixmap(QRect(rect.x(), rect.y(), rect.width(), rect.height()), pixmap);
+    }
+    else
+    {
+    p.drawRoundedRect(QRect(0, 1, rect.width(), rect.height()), radius, radius);
+    painter->drawPixmap(QRect(rect.x(), rect.y(), rect.width(), rect.height()), pixmap);
+    }
 }
 
 //______________________________________________________________________________

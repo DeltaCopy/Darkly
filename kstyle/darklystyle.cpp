@@ -1838,6 +1838,10 @@ bool Style::eventFilterComboBoxContainer(QWidget *widget, QEvent *event)
             _helper->renderMenuFrame(&painter, rect, background, outline, false);
         }
     }
+    // update blur region
+    if (event->type() == QEvent::Move || event->type() == QEvent::Show || event->type() == QEvent::Hide) {
+    _blurHelper->forceUpdate(widget->window());
+    }
 
     return false;
 }

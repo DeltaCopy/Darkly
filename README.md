@@ -5,7 +5,7 @@ This fork attempts to revive lightly with a different approach from boehs, with 
 
 This means that this fork allows real changes, and not just maintainence.
 
-![Darkly](https://github.com/user-attachments/assets/113e38c3-15bf-48c5-a59a-a08da397acdf)
+![Darkly](https://github.com/user-attachments/assets/300460bc-9547-460f-9930-1124dc644f70)
 
 ## What changed?
 

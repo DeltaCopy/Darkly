@@ -259,6 +259,80 @@ void Style::polish(QApplication *app)
 }
 
 //______________________________________________________________
+class ParentResizeFilter : public QObject {
+public:
+    explicit ParentResizeFilter(QWidget* overlay)
+    : QObject(overlay), m_overlay(overlay) {}
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::Resize && m_overlay && m_overlay->parentWidget() == watched) {
+            m_overlay->setGeometry(m_overlay->parentWidget()->rect());
+            m_overlay->update();
+        }
+        // call base implementation
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    QWidget* m_overlay;
+};
+
+class RoundedOuterOutlineOverlay : public QWidget {
+public:
+    RoundedOuterOutlineOverlay(
+        QWidget* parent,
+        bool isDolphin,
+        int radius = StyleConfigData::cornerRadius(),
+                               int thickness = StyleConfigData::cornerRadius() * 2)
+    : QWidget(parent)
+    , m_isDolphin(isDolphin)
+    , m_radius(radius)
+    , m_thickness(thickness)
+    {
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_NoSystemBackground);
+        show();
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override {
+        if (!parentWidget()) return;
+
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        QPalette::ColorGroup group =
+        parentWidget()->isActiveWindow()
+        ? QPalette::Active
+        : QPalette::Inactive;
+
+        QColor outlineColor =
+        parentWidget()->style()->standardPalette().color(group, QPalette::Window);
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(outlineColor);
+
+        QPainterPath path;
+        path.addRect(rect());
+
+        QRectF innerRect = rect();
+        innerRect.adjust(1, 1, m_isDolphin ? -5 : -1, -2);
+
+        path.addRoundedRect(innerRect, m_radius, m_radius);
+        path.setFillRule(Qt::OddEvenFill);
+
+        painter.drawPath(path);
+    }
+
+private:
+    bool m_isDolphin;
+    int  m_radius;
+    int  m_thickness;
+};
+
+//______________________________________________________________
 void Style::polish(QWidget *widget)
 {
     if (!widget)
@@ -297,6 +371,26 @@ void Style::polish(QWidget *widget)
                 break;
             }
             w = w->parentWidget();
+        }
+    }
+
+    if (qobject_cast<QLabel*>(widget)) {
+        QWidget* parent = widget->parentWidget();
+        if (!parent)
+            return;
+
+        while (parent) {
+            if (parent->inherits("KMessageWidget")) {
+                if (!parent->property("_darklyRoundedOverlay").isValid())
+                {
+                    auto overlay = new RoundedOuterOutlineOverlay(parent, _isDolphin, StyleConfigData::cornerRadius(), StyleConfigData::cornerRadius() * 2);
+                    overlay->lower();
+                    parent->installEventFilter(new ParentResizeFilter(overlay));
+                    parent->setProperty("_darklyRoundedOverlay", QVariant::fromValue(static_cast<QObject*>(overlay)));
+                }
+                break;
+            }
+            parent = parent->parentWidget();
         }
     }
 

@@ -70,6 +70,7 @@
 #include <QTreeView>
 #include <QWidgetAction>
 #include <QWindow>
+#include <QQuickWidget>
 
 #if DARKLY_HAVE_QTQUICK
 #include <QQuickWindow>
@@ -493,11 +494,37 @@ void Style::polish(QWidget *widget)
     }
 
     // hack Dolphin's view
-    if (_isDolphin && qobject_cast<QAbstractScrollArea *>(getParent(widget, 2))
-        && !qobject_cast<QAbstractScrollArea *>(getParent(widget, 3))) {
+    if ((_isDolphin && qobject_cast<QAbstractScrollArea *>(getParent(widget, 2))
+        && !qobject_cast<QAbstractScrollArea *>(getParent(widget, 3)))
+
+    ) {
         if (widget->autoFillBackground())
             widget->setAutoFillBackground(false);
     }
+
+    if (widget->inherits("QQuickWidget")) {
+        // Check if it is a child of FocusHackWidget
+        QWidget* parent = widget->parentWidget();
+        bool isChildOfFocusHack = false;
+        while (parent) {
+            if (parent->inherits("FocusHackWidget")) {
+                isChildOfFocusHack = true;
+                break;
+            }
+            parent = parent->parentWidget();
+        }
+
+        if (isChildOfFocusHack) {
+            auto quickWidget = qobject_cast<QQuickWidget*>(widget);
+            if (quickWidget) {
+                quickWidget->setClearColor(Qt::transparent);
+            }
+
+            widget->setAttribute(Qt::WA_TranslucentBackground);
+            widget->setAttribute(Qt::WA_OpaquePaintEvent, false);
+        }
+    }
+
 
     // scrollarea polishing is somewhat complex. It is moved to a dedicated method
     polishScrollArea(qobject_cast<QAbstractScrollArea *>(widget));

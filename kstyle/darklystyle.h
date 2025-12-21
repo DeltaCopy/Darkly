@@ -606,6 +606,7 @@ private:
     bool _isDolphin = false;
     bool _isKonsole = false;
     bool _isKdevelop = false;
+    bool _isSystemSettings = false;
     //* So far, only VirtualBox has introduced itself as "Qt-subapplication" and doesn't accept compositing.
     bool _subApp = false;
     //* Some apps shouldn't have translucent windows.

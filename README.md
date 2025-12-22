@@ -170,7 +170,7 @@ sudo zypper in --no-recommends git ninja cmake kf6-extra-cmake-modules kf6-kconf
       kservice-devel kinit-devel knotifications-devel kwindowsystem-devel kguiaddons-devel \
       kiconthemes-devel kpackage-devel kwin5-devel xcb-util-devel xcb-util-cursor-devel \
       xcb-util-wm-devel xcb-util-keysyms-devel kcmutils-devel \
-      libqt5-qtquick3d-devel kirigami2-devel libKF5I18n5
+      libqt5-qtquick3d-devel kirigami2-devel libKF5I18n5 qt6-quickwidgets-devel
 ```
 
 ```

@@ -75,7 +75,7 @@ target_link_libraries(darkly${QT_MAJOR_VERSION}
         Qt${QT_MAJOR_VERSION}::Quick
 )
 
-if(DARKLY_HAVE_QTQUICK)
+if( DARKLY_HAVE_QTQUICK )
     target_link_libraries(darkly${QT_MAJOR_VERSION}
         PRIVATE
             Qt${QT_MAJOR_VERSION}::QuickWidgets
@@ -86,12 +86,12 @@ endif()
 ################# link KDE Frameworks #################
 target_link_libraries(darkly${QT_MAJOR_VERSION}
     PRIVATE
-        KF${QT_MAJOR_VERSION}::CoreAddons
-        KF${QT_MAJOR_VERSION}::ConfigCore
-        KF${QT_MAJOR_VERSION}::ConfigGui
-        KF${QT_MAJOR_VERSION}::GuiAddons
-        KF${QT_MAJOR_VERSION}::IconThemes
-        KF${QT_MAJOR_VERSION}::WindowSystem
+    KF${QT_MAJOR_VERSION}::CoreAddons
+    KF${QT_MAJOR_VERSION}::ConfigCore
+    KF${QT_MAJOR_VERSION}::ConfigGui
+    KF${QT_MAJOR_VERSION}::GuiAddons
+    KF${QT_MAJOR_VERSION}::IconThemes
+    KF${QT_MAJOR_VERSION}::WindowSystem
 )
 
 if(QT_MAJOR_VERSION STREQUAL "5")
@@ -114,10 +114,12 @@ if(KF${QT_MAJOR_VERSION}FrameworkIntegration_FOUND)
     target_link_libraries(darkly${QT_MAJOR_VERSION} PRIVATE KF${QT_MAJOR_VERSION}::Style)
 endif()
 
-################# Windows specific #################
 if (WIN32)
+    # As stated in https://docs.microsoft.com/en-us/cpp/c-runtime-library/math-constants M_PI only gets defined
+    # when if _USE_MATH_DEFINES is defined
     target_compile_definitions(darkly${QT_MAJOR_VERSION} PRIVATE _USE_MATH_DEFINES _BSD_SOURCE)
 endif()
+
 
 ########### install files ###############
 if (FOR_FLATPAK)
@@ -132,6 +134,7 @@ if (NOT FOR_FLATPAK)
 endif()
 
 ########### subdirectories ###############
+
 if (QT_MAJOR_VERSION EQUAL "6" AND TARGET "KF6::KCMUtils" AND NOT FOR_FLATPAK)
     add_subdirectory(config)
 endif()

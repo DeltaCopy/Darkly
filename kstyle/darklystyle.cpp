@@ -324,6 +324,12 @@ protected:
         path.addRoundedRect(innerRect, m_radius, m_radius);
         path.setFillRule(Qt::OddEvenFill);
 
+        if (outlineColor.alpha() < 255)
+        {
+        painter.setCompositionMode(QPainter::CompositionMode_Clear);
+        painter.drawPath(path);
+        }
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
         painter.drawPath(path);
     }
 

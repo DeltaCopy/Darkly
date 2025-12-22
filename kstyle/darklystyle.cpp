@@ -495,9 +495,8 @@ void Style::polish(QWidget *widget)
 
     // hack Dolphin's view
     if ((_isDolphin && qobject_cast<QAbstractScrollArea *>(getParent(widget, 2))
-        && !qobject_cast<QAbstractScrollArea *>(getParent(widget, 3)))
-
-    ) {
+    && !qobject_cast<QAbstractScrollArea *>(getParent(widget, 3))))
+    {
         if (widget->autoFillBackground())
             widget->setAutoFillBackground(false);
     }
@@ -524,7 +523,6 @@ void Style::polish(QWidget *widget)
             widget->setAttribute(Qt::WA_OpaquePaintEvent, false);
         }
     }
-
 
     // scrollarea polishing is somewhat complex. It is moved to a dedicated method
     polishScrollArea(qobject_cast<QAbstractScrollArea *>(widget));

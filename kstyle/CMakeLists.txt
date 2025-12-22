@@ -1,7 +1,3 @@
-cmake_minimum_required(VERSION 3.16)
-
-project(DarklyStyle)
-
 ################# includes #################
 include_directories(
     animations
@@ -13,7 +9,7 @@ include_directories(
 ################# configuration #################
 configure_file(config-darkly.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-darkly.h)
 
-################# source files #################
+########### next target ###############
 set(darkly_PART_SRCS
     animations/darklyanimation.cpp
     animations/darklyanimations.cpp
@@ -60,7 +56,6 @@ set(darkly_PART_SRCS
 kconfig_add_kcfg_files(darkly_PART_SRCS ../kdecoration/darklysettings.kcfgc)
 kconfig_add_kcfg_files(darkly_PART_SRCS darklystyleconfigdata.kcfgc)
 
-################# add library #################
 add_library(darkly${QT_MAJOR_VERSION} MODULE ${darkly_PART_SRCS})
 
 ################# find Qt modules #################
@@ -124,7 +119,7 @@ if (WIN32)
     target_compile_definitions(darkly${QT_MAJOR_VERSION} PRIVATE _USE_MATH_DEFINES _BSD_SOURCE)
 endif()
 
-################# install #################
+########### install files ###############
 if (FOR_FLATPAK)
     set(LIB_TARGET ${QT_PLUGINS_DIR}/styles/)
 else()
@@ -133,10 +128,10 @@ endif()
 install(TARGETS darkly${QT_MAJOR_VERSION} DESTINATION ${LIB_TARGET})
 
 if (NOT FOR_FLATPAK)
-    install(FILES darkly.themerc DESTINATION ${KDE_INSTALL_DATADIR}/kstyle/themes)
+    install(FILES darkly.themerc  DESTINATION  ${KDE_INSTALL_DATADIR}/kstyle/themes)
 endif()
 
-################# subdirectories #################
+########### subdirectories ###############
 if (QT_MAJOR_VERSION EQUAL "6" AND TARGET "KF6::KCMUtils" AND NOT FOR_FLATPAK)
     add_subdirectory(config)
 endif()

@@ -114,6 +114,12 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_useNewCheckBox, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_documentModeTabs, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_fullOutline, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_scrollBarTransient, &QAbstractButton::toggled, this, [this](bool checked) {
+        _scrollBarTransientAlwaysShowSlim->setEnabled(checked);
+        StyleConfig::updateChanged();
+    });
+    connect(_scrollBarTransientAlwaysShowSlim, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+
 }
 
 //__________________________________________________________________
@@ -167,6 +173,8 @@ void StyleConfig::save()
     StyleConfigData::setUseNewCheckBox(_useNewCheckBox->isChecked());
     StyleConfigData::setDocumentModeTabs(_documentModeTabs->isChecked());
     StyleConfigData::setFullOutline(_fullOutline->isChecked());
+    StyleConfigData::setScrollBarTransient(_scrollBarTransient->isChecked());
+    StyleConfigData::setScrollBarTransientAlwaysShowSlim(_scrollBarTransientAlwaysShowSlim->isChecked());
 
     StyleConfigData::self()->save();
 
@@ -299,6 +307,11 @@ void StyleConfig::updateChanged()
         modified = true;
     else if (_fullOutline->isChecked() != StyleConfigData::fullOutline())
         modified = true;
+    else if (_scrollBarTransient->isChecked() != StyleConfigData::scrollBarTransient())
+        modified = true;
+    else if (_scrollBarTransientAlwaysShowSlim->isChecked() != StyleConfigData::scrollBarTransientAlwaysShowSlim())
+        modified = true;
+
 
     if (_shadowSize->currentIndex() == 0) {
         _shadowColor->setEnabled(false);
@@ -366,6 +379,8 @@ void StyleConfig::load()
     _useNewCheckBox->setChecked(StyleConfigData::useNewCheckBox());
     _documentModeTabs->setChecked(StyleConfigData::documentModeTabs());
     _fullOutline->setChecked(StyleConfigData::fullOutline());
+    _scrollBarTransient->setChecked(StyleConfigData::scrollBarTransient());
+    _scrollBarTransientAlwaysShowSlim->setChecked(StyleConfigData::scrollBarTransientAlwaysShowSlim());
 
     if (!_widgetDrawShadow->isChecked()) {
         _widgetToolBarShadow->setEnabled(false);

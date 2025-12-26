@@ -37,9 +37,9 @@
     
     <!-- corner radius -->
     <entry name="CornerRadius" type = "Int">
-       <default>6</default>
-       <min>1</min>
-       <max>8</max>
+      <default>6</default>
+      <min>1</min>
+      <max>8</max>
     </entry>
 
   </group>
@@ -64,6 +64,12 @@
           <choice name="BorderOversized" />
       </choices>
       <default>BorderNone</default>
+    </entry>
+
+    <entry name="OtherCornerRadius" type = "Int">
+      <default>-1</default>
+      <min>-1</min>
+      <max>8</max>
     </entry>
 
     <!-- title alignment -->

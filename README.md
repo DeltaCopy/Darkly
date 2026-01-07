@@ -321,4 +321,4 @@ For plasma versions below 6.5, please use [v0.5.25](https://github.com/Bali10050
 > [!NOTE]
 > Changing the opacity levels of the menu, sidebar, menubar, toolbar or the tabbar has a prerequisite to have blur activated.
 
-This can be verified in Plasma by going to System settings > Windows Management > Desktop Effects > Blur
+This can be verified in Plasma by going to System Settings > Windows Management > Desktop Effects > Blur

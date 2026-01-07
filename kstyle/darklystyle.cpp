@@ -6572,7 +6572,7 @@ bool Style::drawScrollBarSliderControl(const QStyleOption *option, QPainter *pai
             backgroundColor = QColor();
         }
 
-        int sliderOffset = slimSlider ? 0 : 3;
+        int sliderOffset = slimSlider ? 9 : 10 - 3 * grooveAnimationOpacity;
         // if has addLinesButtons than align slider center by arrow center
         if (_addLineButtons != NoButton && !slimSlider) {
             sliderOffset = (Metrics::ScrollBar_Extend / 2 - Metrics::ArrowSize / 2) * grooveAnimationOpacity;

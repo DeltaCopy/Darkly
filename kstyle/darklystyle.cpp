@@ -1865,6 +1865,7 @@ bool Style::eventFilterScrollArea(QWidget *widget, QEvent *event)
             break;
 
         // Dolphin main view transparency
+        // Must be rendered even if children (scrollbars) are empty/hidden
         if (_isDolphin && scrollArea->inherits("KItemListContainer")
             && StyleConfigData::dolphinViewOpacity() < 100
             && _translucentWidgets.contains(scrollArea->window())) {

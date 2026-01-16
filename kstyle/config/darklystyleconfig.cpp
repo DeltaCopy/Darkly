@@ -359,6 +359,8 @@ void StyleConfig::load()
 
     // Migration: convert deprecated TransparentDolphinView checkbox to DolphinViewOpacity slider
     // Only migrate if the old setting is true AND the new setting hasn't been touched (default 100)
+    // NOTE: This applies in-memory only. We do NOT call save() here to avoid writing to disk
+    // during the load phase, which can cause crashes or overwrite user edits unexpectedly.
     if (StyleConfigData::transparentDolphinView() && StyleConfigData::dolphinViewOpacity() == 100) {
         StyleConfigData::setDolphinViewOpacity(0);
         StyleConfigData::setTransparentDolphinView(false);

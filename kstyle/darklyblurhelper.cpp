@@ -280,8 +280,8 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
 
             // Dolphin main view
             if (StyleConfigData::dolphinViewOpacity() < 100) {
-                QList<QWidget *> itemContainers = widget->findChildren<QWidget *>();
-                for (QWidget *container : itemContainers) {
+                QList<QAbstractScrollArea *> itemContainers = widget->findChildren<QAbstractScrollArea *>();
+                for (QAbstractScrollArea *container : itemContainers) {
                     if (container->inherits("KItemListContainer") && container->isVisible()) {
                         region += QRect(container->mapTo(widget, QPoint(0, 0)), container->rect().size());
                     }

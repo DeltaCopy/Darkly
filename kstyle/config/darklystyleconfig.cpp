@@ -46,19 +46,6 @@ StyleConfig::StyleConfig(QWidget *parent)
 {
     setupUi(this);
 
-    // Align opacity slider labels - calculate max width and apply to all
-    QList<QLabel *> opacityLabels = {_menuGroupDescription, label_5, label_viewOpacity, label_7, label_8, label_18};
-    QFontMetrics fm(font());
-    int maxWidth = 0;
-    for (QLabel *label : opacityLabels) {
-        int width = fm.horizontalAdvance(label->text().remove('&')) + 10; // +10 for padding
-        maxWidth = qMax(maxWidth, width);
-    }
-    for (QLabel *label : opacityLabels) {
-        label->setMinimumWidth(maxWidth);
-        label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    }
-
     // load setup from configData
     load();
 

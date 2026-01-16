@@ -34,6 +34,7 @@
 
 #include <KWindowEffects>
 
+#include <QAbstractScrollArea>
 #include <QComboBox>
 #include <QEvent>
 #include <QMainWindow>

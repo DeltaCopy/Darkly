@@ -26,6 +26,8 @@
 #include "darklystyleversion.h"
 #include <QDBusConnection>
 #include <QDBusMessage>
+#include <QFontMetrics>
+#include <QLabel>
 #include <KLocalizedString>
 
 extern "C" {
@@ -43,6 +45,19 @@ StyleConfig::StyleConfig(QWidget *parent)
     : QWidget(parent)
 {
     setupUi(this);
+
+    // Align opacity slider labels - calculate max width and apply to all
+    QList<QLabel *> opacityLabels = {_menuGroupDescription, label_5, label_viewOpacity, label_7, label_8, label_18};
+    QFontMetrics fm(font());
+    int maxWidth = 0;
+    for (QLabel *label : opacityLabels) {
+        int width = fm.horizontalAdvance(label->text().remove('&')) + 10; // +10 for padding
+        maxWidth = qMax(maxWidth, width);
+    }
+    for (QLabel *label : opacityLabels) {
+        label->setMinimumWidth(maxWidth);
+        label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    }
 
     // load setup from configData
     load();
@@ -70,6 +85,10 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_sidebarOpacity, &QAbstractSlider::valueChanged, this, &StyleConfig::updateChanged);
     connect(_sidebarOpacity, SIGNAL(valueChanged(int)), _sidebarOpacitySpinBox, SLOT(setValue(int)));
     connect(_sidebarOpacitySpinBox, SIGNAL(valueChanged(int)), _sidebarOpacity, SLOT(setValue(int)));
+
+    connect(_viewOpacity, &QAbstractSlider::valueChanged, this, &StyleConfig::updateChanged);
+    connect(_viewOpacity, SIGNAL(valueChanged(int)), _viewOpacitySpinBox, SLOT(setValue(int)));
+    connect(_viewOpacitySpinBox, SIGNAL(valueChanged(int)), _viewOpacity, SLOT(setValue(int)));
 
     connect(_tabBarDrawCenteredTabs, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_menuBarOpacity, &QAbstractSlider::valueChanged, this, &StyleConfig::updateChanged);
@@ -99,7 +118,6 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_tabBGColor, &KColorButton::changed, this, &StyleConfig::updateChanged);
 
     connect(_tabBarAltStyle, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
-    connect(_transparentDolphinView, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_cornerRadius, SIGNAL(valueChanged(int)), SLOT(updateChanged()));
     connect(_tabUseHighlightColor, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_tabUseBrighterCloseIcon, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
@@ -138,6 +156,7 @@ void StyleConfig::save()
     StyleConfigData::setWindowDragMode(_windowDragMode->currentIndex());
     StyleConfigData::setMenuOpacity(_menuOpacity->value());
     StyleConfigData::setDolphinSidebarOpacity(_sidebarOpacity->value());
+    StyleConfigData::setDolphinViewOpacity(_viewOpacity->value());
     StyleConfigData::setMenuBarOpacity(_menuBarOpacity->value());
     StyleConfigData::setToolBarOpacity(_toolBarOpacity->value());
     StyleConfigData::setTabBarOpacity(_tabBarOpacity->value());
@@ -153,7 +172,6 @@ void StyleConfig::save()
     StyleConfigData::setAdjustToDarkThemes(_adjustToDarkThemes->isChecked());
     StyleConfigData::setTabBGColor(_tabBGColor->color());
     StyleConfigData::setTabBarAltStyle(_tabBarAltStyle->isChecked());
-    StyleConfigData::setTransparentDolphinView(_transparentDolphinView->isChecked());
     StyleConfigData::setCornerRadius(_cornerRadius->value());
     StyleConfigData::setTabUseHighlightColor(_tabUseHighlightColor->isChecked());
     StyleConfigData::setTabUseBrighterCloseIcon(_tabUseBrighterCloseIcon->isChecked());
@@ -240,6 +258,9 @@ void StyleConfig::updateChanged()
     } else if (_sidebarOpacity->value() != StyleConfigData::dolphinSidebarOpacity()) {
         modified = true;
         _sidebarOpacitySpinBox->setValue(_sidebarOpacity->value());
+    } else if (_viewOpacity->value() != StyleConfigData::dolphinViewOpacity()) {
+        modified = true;
+        _viewOpacitySpinBox->setValue(_viewOpacity->value());
     } else if (_menuBarOpacity->value() != StyleConfigData::menuBarOpacity()) {
         modified = true;
         _menuBarOpacitySpinBox->setValue(_menuBarOpacity->value());
@@ -272,8 +293,6 @@ void StyleConfig::updateChanged()
     else if (_adjustToDarkThemes->isChecked() != StyleConfigData::adjustToDarkThemes())
         modified = true;
     else if (_tabBarAltStyle->isChecked() != StyleConfigData::tabBarAltStyle())
-        modified = true;
-    else if (_transparentDolphinView->isChecked() != StyleConfigData::transparentDolphinView())
         modified = true;
     else if (_cornerRadius->value() != StyleConfigData::cornerRadius())
         modified = true;
@@ -348,6 +367,16 @@ void StyleConfig::load()
     _menuOpacitySpinBox->setValue(StyleConfigData::menuOpacity());
     _sidebarOpacity->setValue(StyleConfigData::dolphinSidebarOpacity());
     _sidebarOpacitySpinBox->setValue(StyleConfigData::dolphinSidebarOpacity());
+
+    // Migration: convert deprecated TransparentDolphinView checkbox to DolphinViewOpacity slider
+    if (StyleConfigData::transparentDolphinView() && StyleConfigData::dolphinViewOpacity() == 100) {
+        StyleConfigData::setDolphinViewOpacity(50);
+        StyleConfigData::setTransparentDolphinView(false);
+        StyleConfigData::self()->save();
+    }
+
+    _viewOpacity->setValue(StyleConfigData::dolphinViewOpacity());
+    _viewOpacitySpinBox->setValue(StyleConfigData::dolphinViewOpacity());
     _tabBarDrawCenteredTabs->setChecked(StyleConfigData::tabBarDrawCenteredTabs());
     _menuBarOpacity->setValue(StyleConfigData::menuBarOpacity());
     _menuBarOpacitySpinBox->setValue(StyleConfigData::menuBarOpacity());
@@ -407,7 +436,6 @@ void StyleConfig::load()
 
     _tabBarAltStyle->setChecked(StyleConfigData::tabBarAltStyle());
     _tabBGColor->setColor(StyleConfigData::tabBGColor());
-    _transparentDolphinView->setChecked(StyleConfigData::transparentDolphinView());
     _cornerRadius->setValue(StyleConfigData::cornerRadius());
     _tabUseHighlightColor->setChecked(StyleConfigData::tabUseHighlightColor());
     _tabUseBrighterCloseIcon->setChecked(StyleConfigData::tabUseBrighterCloseIcon());

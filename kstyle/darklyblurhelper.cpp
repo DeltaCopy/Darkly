@@ -278,6 +278,16 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
                 // moved to blurSettingsDialogRegion
             }
 
+            // Dolphin main view
+            if (StyleConfigData::dolphinViewOpacity() < 100) {
+                QList<QWidget *> itemContainers = widget->findChildren<QWidget *>();
+                for (QWidget *container : itemContainers) {
+                    if (container->inherits("KItemListContainer") && container->isVisible()) {
+                        region += QRect(container->mapTo(widget, QPoint(0, 0)), container->rect().size());
+                    }
+                }
+            }
+
             /*if( (widget->windowFlags() & Qt::WindowType_Mask) == Qt::Dialog )
             {
                 QList<QWidget *> dialogWidgets = widget->findChildren<QWidget *>( QString(), Qt::FindDirectChildrenOnly );

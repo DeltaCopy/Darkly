@@ -144,10 +144,6 @@
       <default>true</default>
     </entry>
 
-    <entry name="TransparentDolphinView" type="Bool">
-      <default>false</default>
-    </entry>
-
     <!-- shadows on widgets -->
     <entry name="WidgetDrawShadow" type="Bool">
       <default>false</default>
@@ -318,6 +314,15 @@
 
     <entry name="DolphinSidebarOpacity" type="Int">
       <default>100</default>
+    </entry>
+
+    <entry name="DolphinViewOpacity" type="Int">
+      <default>100</default>
+    </entry>
+
+    <!-- Deprecated: kept for backwards compatibility migration -->
+    <entry name="TransparentDolphinView" type="Bool">
+      <default>false</default>
     </entry>
 
     <entry name="MenuBarOpacity" type="Int">

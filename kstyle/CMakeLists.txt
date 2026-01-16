@@ -138,3 +138,9 @@ endif()
 if (QT_MAJOR_VERSION EQUAL "6" AND TARGET "KF6::KCMUtils" AND NOT FOR_FLATPAK)
     add_subdirectory(config)
 endif()
+
+########### tests ###############
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

@@ -334,6 +334,8 @@ void StyleConfig::updateChanged()
 //__________________________________________________________________
 void StyleConfig::load()
 {
+    StyleConfigData::self()->load();
+
     _tabDrawHighlight->setChecked(StyleConfigData::tabDrawHighlight());
     _unifiedTabBarKonsole->setChecked(StyleConfigData::unifiedTabBarKonsole());
     _renderThinSeperatorBetweenTheScrollBar->setChecked(StyleConfigData::renderThinSeperatorBetweenTheScrollBar());
@@ -356,10 +358,10 @@ void StyleConfig::load()
     _sidebarOpacitySpinBox->setValue(StyleConfigData::dolphinSidebarOpacity());
 
     // Migration: convert deprecated TransparentDolphinView checkbox to DolphinViewOpacity slider
+    // Only migrate if the old setting is true AND the new setting hasn't been touched (default 100)
     if (StyleConfigData::transparentDolphinView() && StyleConfigData::dolphinViewOpacity() == 100) {
-        StyleConfigData::setDolphinViewOpacity(50);
+        StyleConfigData::setDolphinViewOpacity(0);
         StyleConfigData::setTransparentDolphinView(false);
-        StyleConfigData::self()->save();
     }
 
     _viewOpacity->setValue(StyleConfigData::dolphinViewOpacity());

@@ -2278,11 +2278,12 @@ QIcon Style::standardIconImplementation(StandardPixmap standardPixmap, const QSt
 //_____________________________________________________________________
 void Style::loadConfiguration()
 {
+    StyleConfigData::self()->load();
+
     // Migration: convert deprecated TransparentDolphinView checkbox to DolphinViewOpacity slider
     if (StyleConfigData::transparentDolphinView() && StyleConfigData::dolphinViewOpacity() == 100) {
-        StyleConfigData::setDolphinViewOpacity(50);
+        StyleConfigData::setDolphinViewOpacity(0);
         StyleConfigData::setTransparentDolphinView(false);
-        StyleConfigData::self()->save();
     }
 
     // load helper configuration

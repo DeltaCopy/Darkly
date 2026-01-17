@@ -483,7 +483,7 @@ void Style::polish(QWidget *widget)
                 widget->setAttribute(Qt::WA_StyledBackground);
 
             // setting Qt::WA_TranslucentBackground enables Qt::WA_NoSystemBackground unset here to stop flickering during repaint events on resizing
-            if (StyleConfigData::transparentDolphinView() && widget->testAttribute(Qt::WA_NoSystemBackground))
+            if (StyleConfigData::dolphinViewOpacity() < 100 && widget->testAttribute(Qt::WA_NoSystemBackground))
                 widget->setAttribute(Qt::WA_NoSystemBackground, false);
 
             _translucentWidgets.insert(widget);
@@ -493,7 +493,8 @@ void Style::polish(QWidget *widget)
 
             // blur
             if (widget->palette().color(widget->backgroundRole()).alpha() < 255 || _helper->titleBarColor(true).alphaF() * 100.0 < 100
-                || (StyleConfigData::dolphinSidebarOpacity() < 100 && _isDolphin)) {
+                || (StyleConfigData::dolphinSidebarOpacity() < 100 && _isDolphin)
+                || (StyleConfigData::dolphinViewOpacity() < 100 && _isDolphin)) {
                 _blurHelper->registerWidget(widget, _isDolphin);
             }
         }
@@ -663,6 +664,18 @@ void Style::polishScrollArea(QAbstractScrollArea *scrollArea)
         scrollArea->viewport()->setForegroundRole(QPalette::WindowText);
     }
 
+    // Dolphin main view transparency
+    if (_isDolphin && StyleConfigData::dolphinViewOpacity() < 100 && scrollArea->inherits("KItemListContainer")) {
+        if (auto *viewport = scrollArea->viewport()) {
+            viewport->setAutoFillBackground(false);
+            for (QWidget *child : viewport->findChildren<QWidget *>()) {
+                if (child->parent() == viewport) {
+                    child->setAutoFillBackground(false);
+                }
+            }
+        }
+    }
+
     // add event filter, to make sure proper background is rendered behind scrollbars
     addEventFilter(scrollArea);
 
@@ -794,7 +807,7 @@ int Style::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWi
         // from kvantum
         else if (widget && _isDolphin) {
             if (QWidget *pw = widget->parentWidget()) {
-                if (StyleConfigData::transparentDolphinView()
+                if (StyleConfigData::dolphinViewOpacity() < 100
                     // not renaming area
                     && !qobject_cast<QAbstractScrollArea *>(pw)
                     // only Dolphin's view
@@ -1752,7 +1765,7 @@ bool Style::eventFilter(QObject *object, QEvent *event)
             // also catch if the alpha channel is set to 255
             if (widget->palette().color(QPalette::Window).alpha() <= 255) {
                 if ((qobject_cast<QToolBar *>(widget) || qobject_cast<QMenuBar *>(widget)) || _isBarsOpaque || _helper->titleBarColor(true).alphaF() < 1.0) {
-                    if (event->type() == QEvent::Move || event->type() == QEvent::Show || event->type() == QEvent::Hide) {
+                    if (event->type() == QEvent::Move || event->type() == QEvent::Show || event->type() == QEvent::Hide || event->type() == QEvent::Resize) {
                         if (_translucentWidgets.contains(widget->window()) && !_isKonsole) {
                             _blurHelper->forceUpdate(widget->window());
                         }
@@ -1882,16 +1895,33 @@ bool Style::eventFilterScrollArea(QWidget *widget, QEvent *event)
             children.append(child);
         }
 
-        if (children.empty())
-            break;
         if (!scrollArea->styleSheet().isEmpty())
+            break;
+
+        // Dolphin main view transparency
+        // Must be rendered even if children (scrollbars) are empty/hidden
+        if (_isDolphin && scrollArea->inherits("KItemListContainer")
+            && StyleConfigData::dolphinViewOpacity() < 100
+            && _translucentWidgets.contains(scrollArea->window())) {
+
+            QPainter painter(scrollArea);
+            painter.setClipRegion(static_cast<QPaintEvent *>(event)->region());
+
+            QRect rect = scrollArea->rect();
+            painter.setRenderHints(QPainter::Antialiasing, false);
+            _helper->renderTransparentArea(&painter, rect);
+
+            QColor backgroundColor = viewport->palette().color(viewport->backgroundRole());
+            backgroundColor.setAlphaF(StyleConfigData::dolphinViewOpacity() / 100.0);
+            painter.fillRect(rect, backgroundColor);
+            break;
+        }
+
+        if (children.empty())
             break;
 
         // make sure proper background is rendered behind the containers
         QPainter painter(scrollArea);
-        painter.setClipRegion(static_cast<QPaintEvent *>(event)->region());
-
-        painter.setPen(Qt::NoPen);
 
         // decide background color
         const QPalette::ColorRole role(viewport->backgroundRole());
@@ -2367,6 +2397,14 @@ QIcon Style::standardIconImplementation(StandardPixmap standardPixmap, const QSt
 //_____________________________________________________________________
 void Style::loadConfiguration()
 {
+    StyleConfigData::self()->load();
+
+    // Migration: convert deprecated TransparentDolphinView checkbox to DolphinViewOpacity slider
+    if (StyleConfigData::transparentDolphinView() && StyleConfigData::dolphinViewOpacity() == 100) {
+        StyleConfigData::setDolphinViewOpacity(0);
+        StyleConfigData::setTransparentDolphinView(false);
+    }
+
     // load helper configuration
     _helper->loadConfig();
 
@@ -4059,7 +4097,7 @@ bool Style::drawFramePrimitive(const QStyleOption *option, QPainter *painter, co
     // from kvantum
     if (_isDolphin) {
         if (QWidget *pw = widget->parentWidget()) {
-            if (StyleConfigData::transparentDolphinView()
+            if (StyleConfigData::dolphinViewOpacity() < 100
                 // not renaming area
                 && !qobject_cast<QAbstractScrollArea *>(pw)
                 // only Dolphin's view

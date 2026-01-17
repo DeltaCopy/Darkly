@@ -34,6 +34,7 @@
 
 #include <KWindowEffects>
 
+#include <QAbstractScrollArea>
 #include <QComboBox>
 #include <QEvent>
 #include <QMainWindow>
@@ -276,6 +277,16 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
 
                 // settings page
                 // moved to blurSettingsDialogRegion
+            }
+
+            // Dolphin main view
+            if (StyleConfigData::dolphinViewOpacity() < 100) {
+                QList<QAbstractScrollArea *> itemContainers = widget->findChildren<QAbstractScrollArea *>();
+                for (QAbstractScrollArea *container : itemContainers) {
+                    if (container->inherits("KItemListContainer") && container->isVisible()) {
+                        region += QRect(container->mapTo(widget, QPoint(0, 0)), container->rect().size());
+                    }
+                }
             }
 
             /*if( (widget->windowFlags() & Qt::WindowType_Mask) == Qt::Dialog )

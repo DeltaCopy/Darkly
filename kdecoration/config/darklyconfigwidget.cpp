@@ -52,6 +52,7 @@ ConfigWidget::ConfigWidget(QObject *parent, const KPluginMetaData &data, const Q
     connect(m_ui.drawBackgroundGradient, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
     connect(m_ui.drawTitleBarSeparator, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
     connect(m_ui.roundedCorners, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
+    connect(m_ui.otherCornerRadius, SIGNAL(valueChanged(int)), SLOT(updateChanged()));
 
     // track animations changes
     connect(m_ui.animationsEnabled, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
@@ -83,6 +84,7 @@ void ConfigWidget::load()
     m_ui.animationsDuration->setValue(m_internalSettings->animationsDuration());
     m_ui.drawTitleBarSeparator->setChecked(m_internalSettings->drawTitleBarSeparator());
     m_ui.roundedCorners->setChecked(m_internalSettings->roundedCorners());
+    m_ui.otherCornerRadius->setValue(m_internalSettings->otherCornerRadius());
 
     // load shadows
     if (m_internalSettings->shadowSize() <= InternalSettings::ShadowVeryLarge)
@@ -117,6 +119,7 @@ void ConfigWidget::save()
     m_internalSettings->setAnimationsDuration(m_ui.animationsDuration->value());
     m_internalSettings->setDrawTitleBarSeparator(m_ui.drawTitleBarSeparator->isChecked());
     m_internalSettings->setRoundedCorners(m_ui.roundedCorners->isChecked());
+    m_internalSettings->setOtherCornerRadius(m_ui.otherCornerRadius->value());
 
     m_internalSettings->setShadowSize(m_ui.shadowSize->currentIndex());
     m_internalSettings->setShadowStrength(qRound(qreal(m_ui.shadowStrength->value() * 255) / 100));
@@ -163,6 +166,7 @@ void ConfigWidget::defaults()
     m_ui.animationsDuration->setValue(m_internalSettings->animationsDuration());
     m_ui.drawTitleBarSeparator->setChecked(m_internalSettings->drawTitleBarSeparator());
     m_ui.roundedCorners->setChecked(m_internalSettings->roundedCorners());
+    m_ui.otherCornerRadius->setValue(m_internalSettings->otherCornerRadius());
 
     m_ui.shadowSize->setCurrentIndex(m_internalSettings->shadowSize());
     m_ui.shadowStrength->setValue(qRound(qreal(m_internalSettings->shadowStrength() * 100) / 255));
@@ -192,6 +196,8 @@ void ConfigWidget::updateChanged()
     else if (m_ui.drawBackgroundGradient->isChecked() != m_internalSettings->drawBackgroundGradient())
         modified = true;
     else if (m_ui.roundedCorners->isChecked() != m_internalSettings->roundedCorners())
+        modified = true;
+    else if (m_ui.otherCornerRadius->value() != m_internalSettings->otherCornerRadius())
         modified = true;
 
     // animations

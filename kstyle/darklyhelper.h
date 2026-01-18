@@ -350,7 +350,7 @@ public:
     }
 
     //* scrollbar handle
-    void renderScrollBarHandle(QPainter *, const QRectF &, const QColor &) const;
+    void renderScrollBarHandle(QPainter *, const QRectF &, const QColor &fg, QColor bg = QColor()) const;
 
     //* toolbar handle
     void renderToolBarHandle(QPainter *painter, const QRect &rect, const QColor &color) const

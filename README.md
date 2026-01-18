@@ -311,8 +311,16 @@ doas apk del build-deps
 
 ---
 
+### Transparency
+> [!NOTE]
+> Changing the opacity levels of the menu, sidebar, menubar, toolbar or the tabbar has a prerequisite to have blur activated.
+
+This can be verified in Plasma by going to System Settings > Windows Management > Desktop Effects > Blur
+
 ### Older plasma versions
 
 For plasma versions below 6.3, please use [v0.5.16](https://github.com/Bali10050/Darkly/releases/tag/v0.5.16) or the [Darkly-6.2](https://github.com/Bali10050/Darkly/tree/Darkly-6.2) branch.
 
 For plasma versions below 6.5, please use [v0.5.25](https://github.com/Bali10050/Darkly/releases/tag/v0.5.25) or the [Darkly-6.4](https://github.com/Bali10050/Darkly/tree/Darkly-6.4) branch.
+
+

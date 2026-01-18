@@ -23,6 +23,7 @@
 #include "darklywidgetstatedata.h"
 
 #include <QStyle>
+#include <QAbstractScrollArea>
 
 namespace Darkly
 {
@@ -34,6 +35,7 @@ class ScrollBarData : public WidgetStateData
     Q_PROPERTY(qreal addLineOpacity READ addLineOpacity WRITE setAddLineOpacity)
     Q_PROPERTY(qreal subLineOpacity READ subLineOpacity WRITE setSubLineOpacity)
     Q_PROPERTY(qreal grooveOpacity READ grooveOpacity WRITE setGrooveOpacity)
+    Q_PROPERTY(qreal transientOpacity READ transientOpacity WRITE setTransientOpacity)
 
 public:
     //* constructor
@@ -98,13 +100,7 @@ public:
     }
 
     //* duration
-    void setDuration(int duration) override
-    {
-        WidgetStateData::setDuration(duration);
-        addLineAnimation().data()->setDuration(duration);
-        subLineAnimation().data()->setDuration(duration);
-        grooveAnimation().data()->setDuration(duration);
-    }
+    void setDuration(int duration) override;
 
     //* addLine opacity
     void setAddLineOpacity(qreal value)
@@ -158,6 +154,36 @@ public:
     QPoint position() const
     {
         return _position;
+    }
+
+    //* transient update
+    void transientUpdate();
+
+    //* transient opacity
+    void setTransientOpacity(qreal value)
+    {
+        value = digitize(value);
+        if (_transientOpacity == value) {
+            return;
+        }
+        _transientOpacity = value;
+        setDirty();
+    }
+
+    //* transient opacity
+    qreal transientOpacity() const
+    {
+        return _transientOpacity;
+    }
+
+    void setNeedPreExpand(bool near)
+    {
+        _needPreExpand = near;
+    }
+
+    bool isNeedPreExpand() const
+    {
+        return _needPreExpand;
     }
 
 protected Q_SLOTS:
@@ -276,6 +302,14 @@ private:
 
     //* groove data
     Data _grooveData;
+
+    //* transient animation
+    Animation::Pointer _transientAnimation;
+    int _transientAnimationShowDuration;
+    int _transientAnimationHideDuration;
+    qreal _transientOpacity = AnimationData::OpacityInvalid;
+    QTimer *_transientTimer;
+    bool _needPreExpand = false;
 
     //* mouse position
     QPoint _position;

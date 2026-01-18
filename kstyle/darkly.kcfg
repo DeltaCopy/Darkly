@@ -15,6 +15,14 @@
       <max>255</max>
     </entry>
 
+    <!-- scrollbar transient -->
+    <entry name="ScrollBarTransient" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="ScrollBarTransientAlwaysShowSlim" type="Bool">
+      <default>false</default>
+    </entry>
+
     <!-- shadow size -->
     <entry name="ShadowSize" type="Enum">
       <choices>
@@ -142,10 +150,6 @@
     <!-- views -->
     <entry name="ViewDrawFocusIndicator" type="Bool">
       <default>true</default>
-    </entry>
-
-    <entry name="TransparentDolphinView" type="Bool">
-      <default>false</default>
     </entry>
 
     <!-- shadows on widgets -->
@@ -285,7 +289,7 @@
     </entry>
 
     <entry name="ForceOpaque" type="StringList">
-      <default>kscreenlocker,wine,vlc,kdevelop,smplayer,virtualbox,virtualboxvm,obs,kaffeine,kstars,digikam,kdenlive</default>
+      <default>kscreenlocker,wine,vlc,kdevelop,smplayer,virtualbox,virtualboxvm,obs,kaffeine,kstars,digikam,kdenlive,zen</default>
     </entry>
 
     <!-- if true, move events are passed to the window manager (e.g. KWin) -->
@@ -318,6 +322,15 @@
 
     <entry name="DolphinSidebarOpacity" type="Int">
       <default>100</default>
+    </entry>
+
+    <entry name="DolphinViewOpacity" type="Int">
+      <default>100</default>
+    </entry>
+
+    <!-- Deprecated: kept for backwards compatibility migration -->
+    <entry name="TransparentDolphinView" type="Bool">
+      <default>false</default>
     </entry>
 
     <entry name="MenuBarOpacity" type="Int">

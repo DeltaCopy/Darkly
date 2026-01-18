@@ -21,7 +21,7 @@ jobs:
             kcmutils-devel kwindowsystem-devel libqt5-qtquick3d-devel kirigami2-devel libKF5I18n5 \
             kdecoration6-devel kf6-kconfig-devel kf6-kconfigwidgets-devel \
             kf6-kcoreaddons-devel kf6-frameworkintegration-devel kf6-kcmutils-devel \
-            kf6-kwindowsystem-devel kwayland6-devel libplasma6-devel kf6-kirigami-devel fdupes qt6-quickwidgets-devel
+            kf6-kwindowsystem-devel kwayland6-devel libplasma6-devel kf6-kirigami-devel fdupes qt6-quickwidgets-devel qt6-test-devel
       - uses: actions/cache/restore@v4
         id: cache
         with:

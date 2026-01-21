@@ -4404,7 +4404,6 @@ bool Style::drawFrameTabBarBasePrimitive(const QStyleOption *option, QPainter *p
         QColor backgroundColor = _helper->transparentBarBgColor(widget->palette().color(QPalette::Window), painter, widget->rect(), BarType::TabBar);
         painter->fillRect(widget->rect(), backgroundColor);
 
-        const QRect baseRect = option->rect;
         return true;
 }
 

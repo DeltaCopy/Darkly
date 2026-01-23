@@ -337,7 +337,7 @@ QRegion BlurHelper::blurTabWidgetRegion(QWidget *widget) const
                 // the width of the tabbar is always -1 smaller than the tabwidget width so increment it
                 QSize tbSize(tw->tabBar()->rect().size());
                 tbSize.rwidth() += 1;
-                region += roundedRegion(QRect(tw->pos(), tbSize), StyleConfigData::cornerRadius(), false, false, true, false);
+                region += roundedRegion(QRect(tw->pos(), tbSize), StyleConfigData::cornerRadius(), false, false, false, false);
             }
         }
     }

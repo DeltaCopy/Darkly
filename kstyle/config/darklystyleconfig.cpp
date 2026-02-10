@@ -20,6 +20,9 @@
 
 #include "darklystyleconfig.h"
 
+#include <QQuickWidget>
+#include <QUrl>
+
 #include "../config-darkly.h"
 #include "../darkly.h"
 #include "darklystyleconfigdata.h"
@@ -28,6 +31,7 @@
 #include <QDBusMessage>
 #include <QFontMetrics>
 #include <QLabel>
+#include <QLineEdit>
 #include <KLocalizedString>
 
 extern "C" {
@@ -45,6 +49,12 @@ StyleConfig::StyleConfig(QWidget *parent)
     : QWidget(parent)
 {
     setupUi(this);
+
+    // Kirigami Editor Integration
+    auto *kirigamiEditor = new QQuickWidget(this);
+    kirigamiEditor->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    kirigamiEditor->setSource(QUrl(QStringLiteral("qrc:/KirigamiEditor.qml")));
+    kirigamiLayout->addWidget(kirigamiEditor);
 
     // load setup from configData
     load();
@@ -118,12 +128,16 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_sunkenEffect, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_useNewCheckBox, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_documentModeTabs, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
-    connect(_fullOutline, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_scrollBarTransient, &QAbstractButton::toggled, this, [this](bool checked) {
         _scrollBarTransientAlwaysShowSlim->setEnabled(checked);
         StyleConfig::updateChanged();
     });
     connect(_scrollBarTransientAlwaysShowSlim, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+
+    connect(_separatorMenuItem, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_separatorSidePanel, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_separatorApp, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_separatorAppExceptions, &QLineEdit::textChanged, this, &StyleConfig::updateChanged);
 
 }
 
@@ -180,6 +194,10 @@ void StyleConfig::save()
     StyleConfigData::setFullOutline(_fullOutline->isChecked());
     StyleConfigData::setScrollBarTransient(_scrollBarTransient->isChecked());
     StyleConfigData::setScrollBarTransientAlwaysShowSlim(_scrollBarTransientAlwaysShowSlim->isChecked());
+    StyleConfigData::setSeparatorMenuItem(_separatorMenuItem->isChecked());
+    StyleConfigData::setSeparatorSidePanel(_separatorSidePanel->isChecked());
+    StyleConfigData::setSeparatorApp(_separatorApp->isChecked());
+    StyleConfigData::setSeparatorAppExceptions(QStringList(_separatorAppExceptions->text().split(QLatin1Char(','))));
 
     StyleConfigData::self()->save();
 
@@ -317,6 +335,14 @@ void StyleConfig::updateChanged()
         modified = true;
     else if (_scrollBarTransientAlwaysShowSlim->isChecked() != StyleConfigData::scrollBarTransientAlwaysShowSlim())
         modified = true;
+    else if (_separatorMenuItem->isChecked() != StyleConfigData::separatorMenuItem())
+        modified = true;
+    else if (_separatorSidePanel->isChecked() != StyleConfigData::separatorSidePanel())
+        modified = true;
+    else if (_separatorApp->isChecked() != StyleConfigData::separatorApp())
+        modified = true;
+    else if (_separatorAppExceptions->text() != StyleConfigData::separatorAppExceptions().join(QLatin1Char(',')))
+        modified = true;
 
 
     if (_shadowSize->currentIndex() == 0) {
@@ -401,6 +427,10 @@ void StyleConfig::load()
     _fullOutline->setChecked(StyleConfigData::fullOutline());
     _scrollBarTransient->setChecked(StyleConfigData::scrollBarTransient());
     _scrollBarTransientAlwaysShowSlim->setChecked(StyleConfigData::scrollBarTransientAlwaysShowSlim());
+    _separatorMenuItem->setChecked(StyleConfigData::separatorMenuItem());
+    _separatorSidePanel->setChecked(StyleConfigData::separatorSidePanel());
+    _separatorApp->setChecked(StyleConfigData::separatorApp());
+    _separatorAppExceptions->setText(StyleConfigData::separatorAppExceptions().join(QLatin1Char(',')));
 
     if (!_widgetDrawShadow->isChecked()) {
         _widgetToolBarShadow->setEnabled(false);

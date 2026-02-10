@@ -215,6 +215,23 @@
       <default>true</default>
     </entry>
 
+    <!-- separators -->
+    <entry name="SeparatorMenuItem" type="Bool">
+      <default>true</default>
+    </entry>
+    
+    <entry name="SeparatorSidePanel" type="Bool">
+      <default>false</default>
+    </entry>
+
+    <entry name="SeparatorApp" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <entry name="SeparatorAppExceptions" type="StringList">
+      <default></default>
+    </entry>
+
     <entry name="TabUseBrighterCloseIcon" type="Bool">
       <default>false</default>
     </entry>

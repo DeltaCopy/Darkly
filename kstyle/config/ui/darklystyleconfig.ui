@@ -1776,6 +1776,64 @@
        </widget>
       </widget>
      </widget>
+     <widget class="QWidget" name="SeparatorsTab">
+      <attribute name="title">
+       <string>Separators</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_Separators">
+       <item>
+        <widget class="QCheckBox" name="_separatorMenuItem">
+         <property name="text">
+          <string>Draw context menu separators</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="_separatorSidePanel">
+         <property name="text">
+          <string>Draw side panel separators</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="_separatorApp">
+         <property name="text">
+          <string>Draw application separators</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="_separatorAppExceptions">
+         <property name="placeholderText">
+          <string>Exceptions (comma separated app names)...</string>
+         </property>
+         <property name="toolTip">
+          <string>List of applications to invert the separator setting for.</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_Separators">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="KirigamiTab">
+      <attribute name="title">
+       <string>Kirigami</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="kirigamiLayout">
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>

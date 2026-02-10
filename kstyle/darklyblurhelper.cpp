@@ -34,6 +34,7 @@
 
 #include <KWindowEffects>
 
+#include <QDockWidget>
 #include <QAbstractScrollArea>
 #include <QComboBox>
 #include <QEvent>
@@ -241,6 +242,33 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
                     // else region += mainToolbar; //FIXME: is this valid?
                 }
             }
+        }
+
+        // Generic Sidebar Transparency (using "Dolphin" Sidebar Opacity setting as generic setting)
+        if (StyleConfigData::dolphinSidebarOpacity() < 100) {
+
+             // QDockWidgets (Sidebars in KDevelop, etc)
+             QList<QDockWidget *> dockWidgets = widget->findChildren<QDockWidget *>();
+             for (auto dw : dockWidgets) {
+                 if (dw && dw->isVisible() && !dw->isFloating()) {
+                     QRegion dwRegion = dw->rect();
+                     dwRegion = dwRegion.translated(dw->mapTo(widget, QPoint(0,0)));
+                     // Intersect with widget rect to ensure we are within bounds
+                     dwRegion &= widget->rect();
+                     region += dwRegion;
+                 }
+             }
+
+             // KMultiTabBar (common in KDE apps sidebars)
+             QList<QWidget *> multiTabBars = widget->findChildren<QWidget *>();
+             for (auto w : multiTabBars) {
+                  if (w && w->isVisible() && w->inherits("KMultiTabBar")) {
+                       QRegion mtbRegion = w->rect();
+                       mtbRegion = mtbRegion.translated(w->mapTo(widget, QPoint(0,0)));
+                       mtbRegion &= widget->rect();
+                       region += mtbRegion;
+                  }
+             }
         }
 
         if (_isDolphin) {

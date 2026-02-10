@@ -1414,8 +1414,15 @@ bool Style::drawWidgetPrimitive(const QStyleOption *option, QPainter *painter, c
         }
 
         painter->setPen(_helper->separatorColor(_toolsAreaManager->palette()));
-        if (!_isDolphin)
-            painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+        if (!_isDolphin) {
+             bool drawSeparator = StyleConfigData::separatorApp();
+             if (StyleConfigData::separatorAppExceptions().contains(QString::fromLatin1(widget->window()->metaObject()->className()))) {
+                 drawSeparator = !drawSeparator;
+             }
+
+             if (drawSeparator)
+                painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+        }
 
         painter->restore();
     } else if (auto dialog = qobject_cast<const QDialog *>(widget)) {
@@ -1452,14 +1459,29 @@ bool Style::drawWidgetPrimitive(const QStyleOption *option, QPainter *painter, c
                 }
 
                 painter->setPen(QPen(_helper->separatorColor(_toolsAreaManager->palette()), widget->devicePixelRatio()));
-                painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+
+                bool drawSeparator = StyleConfigData::separatorApp();
+                if (StyleConfigData::separatorAppExceptions().contains(QString::fromLatin1(widget->window()->metaObject()->className()))) {
+                    drawSeparator = !drawSeparator;
+                }
+
+                if (drawSeparator)
+                    painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+
 
                 return true;
             }
         }
 
         painter->setPen(QPen(_helper->separatorColor(_toolsAreaManager->palette()), PenWidth::Frame * widget->devicePixelRatio()));
-        painter->drawLine(widget->rect().topLeft(), widget->rect().topRight());
+
+        bool drawSeparator = StyleConfigData::separatorApp();
+        if (StyleConfigData::separatorAppExceptions().contains(QString::fromLatin1(widget->window()->metaObject()->className()))) {
+            drawSeparator = !drawSeparator;
+        }
+
+        if (drawSeparator)
+            painter->drawLine(widget->rect().topLeft(), widget->rect().topRight());
     } else if (widget && widget->inherits("KMultiTabBar")) {
         enum class Position {
             Left,
@@ -1483,8 +1505,12 @@ bool Style::drawWidgetPrimitive(const QStyleOption *option, QPainter *painter, c
 
         rect.setWidth(splitterWidth);
 
-        const auto color(_helper->separatorColor(option->palette));
-        _helper->renderSeparator(painter, rect, color, true);
+        rect.setWidth(splitterWidth);
+
+        if (StyleConfigData::separatorSidePanel()) {
+            const auto color(_helper->separatorColor(option->palette));
+            _helper->renderSeparator(painter, rect, color, true);
+        }
     }
     return true;
 }
@@ -1734,7 +1760,7 @@ bool Style::eventFilter(QObject *object, QEvent *event)
                     // separator between the window and decoration
                     if (_helper->titleBarColor(true).alphaF() * 100.0 < 100 && !_isKonsole) {
                         p.setBrush(Qt::NoBrush);
-                        p.setPen(QColor(0, 0, 0, 40));
+                        p.setPen(Qt::transparent);
                         p.drawLine(widget->rect().topLeft(), widget->rect().topRight());
                     }
 
@@ -2165,16 +2191,16 @@ bool Style::eventFilterDockWidget(QDockWidget *dockWidget, QEvent *event)
                 // top shadow
                 if (StyleConfigData::dolphinSidebarOpacity() < _helper->titleBarColor(true).alphaF() * 100.0 && StyleConfigData::widgetDrawShadow()) {
                     painter.setBrush(Qt::NoBrush);
-                    painter.setPen(QColor(0, 0, 0, darkTheme ? 80 : 40));
+                    painter.setPen(Qt::transparent);
                     painter.drawLine(rect.topLeft(), rect.topRight());
 
-                    painter.setPen(QColor(0, 0, 0, darkTheme ? 28 : 16));
+                    painter.setPen(Qt::transparent);
                     painter.drawLine(rect.topLeft() + QPoint(0, 1), rect.topRight() + QPoint(0, 1));
 
-                    painter.setPen(QColor(0, 0, 0, darkTheme ? 6 : 3));
+                    painter.setPen(Qt::transparent);
                     painter.drawLine(rect.topLeft() + QPoint(0, 2), rect.topRight() + QPoint(0, 2));
 
-                    painter.setPen(QColor(0, 0, 0, darkTheme ? 2 : 1));
+                    painter.setPen(Qt::transparent);
                     painter.drawLine(rect.topLeft() + QPoint(0, 3), rect.topRight() + QPoint(0, 3));
                 }
 
@@ -4102,7 +4128,7 @@ bool Style::drawFramePrimitive(const QStyleOption *option, QPainter *painter, co
                 && !qobject_cast<QAbstractScrollArea *>(pw)
                 // only Dolphin's view
                 && QString(pw->metaObject()->className()).startsWith("Dolphin")) {
-                if (widget->property("VISIBLE-SEPARATORS").toBool()) {
+                if (widget->property("VISIBLE-SEPARATORS").toBool() && StyleConfigData::separatorApp()) {
                     QRect copy = rect.adjusted(12, 0, -12, 0);
                     painter->setRenderHint(QPainter::Antialiasing);
                     painter->setBrush(Qt::NoBrush);
@@ -4143,28 +4169,30 @@ bool Style::drawFramePrimitive(const QStyleOption *option, QPainter *painter, co
 
     // render
     if (!StyleConfigData::sidePanelDrawFrame() && widget && widget->property(PropertyNames::sidePanelView).toBool()) {
-        const auto outline(_helper->sidePanelOutlineColor(palette));
-        const bool reverseLayout(option->direction == Qt::RightToLeft);
-        const Side side(reverseLayout ? SideRight : SideLeft);
-        if ((widget->window()->windowFlags() & Qt::WindowType_Mask) == Qt::Dialog) {
-            QColor background(palette.color(QPalette::Base));
+        if (StyleConfigData::separatorSidePanel()) {
+            const auto outline(_helper->sidePanelOutlineColor(palette));
+            const bool reverseLayout(option->direction == Qt::RightToLeft);
+            const Side side(reverseLayout ? SideRight : SideLeft);
+            if ((widget->window()->windowFlags() & Qt::WindowType_Mask) == Qt::Dialog) {
+                QColor background(palette.color(QPalette::Base));
 
-            if (StyleConfigData::dolphinSidebarOpacity() < 100 && _isDolphin) {
-                _helper->renderTransparentArea(painter, rect);
+                if (StyleConfigData::dolphinSidebarOpacity() < 100 && _isDolphin) {
+                    _helper->renderTransparentArea(painter, rect);
 
-                background.setAlphaF(StyleConfigData::dolphinSidebarOpacity() / 100.0);
+                    background.setAlphaF(StyleConfigData::dolphinSidebarOpacity() / 100.0);
+                }
+
+                painter->fillRect(rect, background);
+
+                if (_helper->titleBarColor(true).alpha() != palette.color(QPalette::Window).alpha()) {
+                    painter->setRenderHint(QPainter::Antialiasing, false);
+                    painter->setPen(QColor(0, 0, 0, 30));
+                    painter->drawLine(rect.topLeft(), rect.topRight());
+                    painter->setRenderHint(QPainter::Antialiasing);
+                }
             }
-
-            painter->fillRect(rect, background);
-
-            if (_helper->titleBarColor(true).alpha() != palette.color(QPalette::Window).alpha()) {
-                painter->setRenderHint(QPainter::Antialiasing, false);
-                painter->setPen(QColor(0, 0, 0, 30));
-                painter->drawLine(rect.topLeft(), rect.topRight());
-                painter->setRenderHint(QPainter::Antialiasing);
-            }
+            _helper->renderSidePanelFrame(painter, rect, outline, side);
         }
-        _helper->renderSidePanelFrame(painter, rect, outline, side);
 
     } else {
         /*if( _frameShadowFactory->isRegistered( widget ) ) // WHAT does this do??
@@ -6017,8 +6045,10 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
     if (menuItemOption->menuItemType == QStyleOptionMenuItem::Separator) {
         // normal separator
         if (menuItemOption->text.isEmpty() && menuItemOption->icon.isNull()) {
-            const auto color(_helper->separatorColor(palette));
-            _helper->renderSeparator(painter, rect.adjusted(Metrics::MenuItem_MarginWidth * 2, 0, -Metrics::MenuItem_MarginWidth * 2, 0), color);
+            if (StyleConfigData::separatorMenuItem()) {
+                const auto color(_helper->separatorColor(palette));
+                _helper->renderSeparator(painter, rect.adjusted(Metrics::MenuItem_MarginWidth * 2, 0, -Metrics::MenuItem_MarginWidth * 2, 0), color);
+            }
             return true;
 
         } else {

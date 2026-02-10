@@ -3,6 +3,7 @@ add_definitions(-DTRANSLATION_DOMAIN=\"darkly_style_config\")
 set(kstyle_darkly_config_PART_SRCS darklystyleconfig.cpp)
 
 set(kstyle_darkly_config_PART_SRCS ${kstyle_darkly_config_PART_SRCS} darklystyleconfigmodule.cpp)
+set(kstyle_darkly_config_PART_SRCS ${kstyle_darkly_config_PART_SRCS} darklystyleconfig.qrc)
 
 kconfig_add_kcfg_files(kstyle_darkly_config_PART_SRCS ../darklystyleconfigdata.kcfgc)
 set(kstyle_darkly_config_PART_FORMS ui/darklystyleconfig.ui)
@@ -14,7 +15,7 @@ kcoreaddons_add_plugin(darklystyleconfig SOURCES
     INSTALL_NAMESPACE "kstyle_config"
 )
 
-target_link_libraries(darklystyleconfig Qt6::Core Qt6::Gui Qt6::Widgets Qt6::DBus)
+target_link_libraries(darklystyleconfig Qt6::Core Qt6::Gui Qt6::Widgets Qt6::DBus Qt6::Quick Qt6::QuickWidgets)
 target_link_libraries(darklystyleconfig KF6::CoreAddons KF6::ConfigCore KF6::ConfigWidgets KF6::I18n)
 if(QT_MAJOR_VERSION STREQUAL "6")
     target_link_libraries(darklystyleconfig KF6::KCMUtils)

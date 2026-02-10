@@ -120,31 +120,7 @@ void Helper::loadConfig()
 //____________________________________________________________________
 QColor Helper::frameOutlineColor(const QPalette &palette, bool mouseOver, bool hasFocus, qreal opacity, AnimationMode mode) const
 {
-    QColor outline(KColorUtils::mix(palette.color(QPalette::Window), palette.color(QPalette::WindowText), 0.25));
-    // QColor outline( palette.color( QPalette::QPalette::AlternateBase ) );
-
-    // focus takes precedence over hover
-    if (mode == AnimationFocus) {
-        const QColor focus(focusColor(palette));
-        const QColor hover(hoverColor(palette));
-
-        if (mouseOver)
-            outline = KColorUtils::mix(hover, focus, opacity);
-        else
-            outline = KColorUtils::mix(outline, focus, opacity);
-
-    } else if (hasFocus) {
-        outline = focusColor(palette);
-
-    } else if (mode == AnimationHover) {
-        const QColor hover(hoverColor(palette));
-        outline = KColorUtils::mix(outline, hover, opacity);
-
-    } else if (mouseOver) {
-        outline = hoverColor(palette);
-    }
-
-    return outline;
+    return Qt::transparent;
 }
 
 //____________________________________________________________________
@@ -168,8 +144,7 @@ QColor Helper::buttonHoverOutlineColor(const QPalette &palette) const
 //____________________________________________________________________
 QColor Helper::sidePanelOutlineColor(const QPalette &palette) const
 {
-    QColor outline(qGray(palette.color(QPalette::Window).rgb()) > 150 ? QColor(0, 0, 0, 20) : QColor(0, 0, 0, 50));
-    return outline;
+    return Qt::transparent;
 }
 
 //____________________________________________________________________
@@ -398,7 +373,7 @@ QColor Helper::checkBoxIndicatorColor(const QPalette &palette, bool mouseOver, b
 //______________________________________________________________________________
 QColor Helper::separatorColor(const QPalette &palette) const
 {
-    return isDarkTheme(palette) ? QColor(255, 255, 255, 16) : QColor(0, 0, 0, 16);
+    return Qt::transparent;
 }
 
 //______________________________________________________________________________

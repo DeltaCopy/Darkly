@@ -2,7 +2,7 @@
 add_definitions(-DTRANSLATION_DOMAIN=\"darkly_style_config\")
 set(kstyle_darkly_config_PART_SRCS darklystyleconfig.cpp)
 
-set(kstyle_darkly__config_PART_SRCS ${kstyle_darkly_config_PART_SRCS} darklystyleconfigmodule.cpp)
+set(kstyle_darkly_config_PART_SRCS ${kstyle_darkly_config_PART_SRCS} darklystyleconfigmodule.cpp)
 
 kconfig_add_kcfg_files(kstyle_darkly_config_PART_SRCS ../darklystyleconfigdata.kcfgc)
 set(kstyle_darkly_config_PART_FORMS ui/darklystyleconfig.ui)

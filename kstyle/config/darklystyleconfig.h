@@ -38,6 +38,9 @@ public:
     {
     }
 
+private:
+    std::list<QString> _shadowSizes = {"None", "Small", "Medium", "Large", "VeryLarge"};
+
 Q_SIGNALS:
 
     //* emitted whenever one option is changed.

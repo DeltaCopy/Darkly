@@ -45,13 +45,26 @@ const CompositeShadowParams s_shadowParams[] = {
     // None
     CompositeShadowParams(),
     // Small
-    CompositeShadowParams(QPoint(0, 8), ShadowParams(QPoint(0, 0), 8, 0.8), ShadowParams(QPoint(0, -4), 4, 0.16), ShadowParams(QPoint(0, -6), 2, 0.12)),
+    CompositeShadowParams(QPoint(0, 3), ShadowParams(QPoint(0, 0), 12, 0.26), ShadowParams(QPoint(0, -2), 6, 0.16)),
     // Medium
-    CompositeShadowParams(QPoint(0, 8), ShadowParams(QPoint(0, 0), 20, 0.24), ShadowParams(QPoint(0, -4), 8, 0.32), ShadowParams(QPoint(0, -6), 4, 0.01)),
+    CompositeShadowParams(QPoint(0, 4), ShadowParams(QPoint(0, 0), 16, 0.24), ShadowParams(QPoint(0, -2), 8, 0.14)),
     // Large
-    CompositeShadowParams(QPoint(0, 16), ShadowParams(QPoint(0, 0), 28, 0.20), ShadowParams(QPoint(0, -8), 16, 0.24), ShadowParams(QPoint(0, -13), 6, 0.16)),
+    CompositeShadowParams(QPoint(0, 5), ShadowParams(QPoint(0, 0), 20, 0.22), ShadowParams(QPoint(0, -3), 10, 0.12)),
     // Very Large
-    CompositeShadowParams(QPoint(0, 32), ShadowParams(QPoint(0, 0), 40, 0.12), ShadowParams(QPoint(0, -16), 20, 0.20), ShadowParams(QPoint(0, -27), 5, 0.24))};
+    CompositeShadowParams(QPoint(0, 6), ShadowParams(QPoint(0, 0), 24, 0.2), ShadowParams(QPoint(0, -3), 12, 0.1))};
+
+/*
+old values
+
+CompositeShadowParams(QPoint(0, 8), ShadowParams(QPoint(0, 0), 8, 0.8), ShadowParams(QPoint(0, -4), 4, 0.16), ShadowParams(QPoint(0, -6), 2, 0.12)),
+// Medium
+CompositeShadowParams(QPoint(0, 8), ShadowParams(QPoint(0, 0), 20, 0.24), ShadowParams(QPoint(0, -4), 8, 0.32), ShadowParams(QPoint(0, -6), 4, 0.01)),
+// Large
+CompositeShadowParams(QPoint(0, 16), ShadowParams(QPoint(0, 0), 28, 0.20), ShadowParams(QPoint(0, -8), 16, 0.24), ShadowParams(QPoint(0, -13), 6, 0.16)),
+// Very Large
+CompositeShadowParams(QPoint(0, 32), ShadowParams(QPoint(0, 0), 40, 0.12), ShadowParams(QPoint(0, -16), 20, 0.20), ShadowParams(QPoint(0, -27), 5, 0.24))};
+
+*/
 }
 
 namespace Darkly
@@ -74,6 +87,24 @@ CompositeShadowParams ShadowHelper::lookupShadowParams(int shadowSizeEnum)
     default:
         // Fallback to the Large size.
         return s_shadowParams[3];
+    }
+}
+
+//_____________________________________________________
+int ShadowHelper::lookupIntensityParams(int shadowIntensityEnum)
+{
+    switch (shadowIntensityEnum) {
+    case StyleConfigData::Low:
+        return 1;
+    case StyleConfigData::Medium:
+        return 2;
+    case StyleConfigData::High:
+        return 3;
+    case StyleConfigData::Maximum:
+        return 4;
+    default:
+        // Fallback to the High size.
+        return 3;
     }
 }
 
@@ -185,15 +216,18 @@ bool ShadowHelper::eventFilter(QObject *object, QEvent *event)
 }
 
 //_______________________________________________________
-TileSet ShadowHelper::shadowTiles()
+TileSet ShadowHelper::shadowTiles(QWidget *widget)
 {
-    const CompositeShadowParams params = lookupShadowParams(StyleConfigData::shadowSize());
+    CompositeShadowParams params = lookupShadowParams(StyleConfigData::shadowSize());
 
     if (params.isNone()) {
         return TileSet();
     } else if (_shadowTiles.isValid()) {
         return _shadowTiles;
     }
+
+    const qreal dpr = Helper::isWayland() ? 1 : widget->devicePixelRatioF();
+    params *= dpr;
 
     auto withOpacity = [](const QColor &color, qreal opacity) -> QColor {
         QColor c(color);
@@ -202,27 +236,26 @@ TileSet ShadowHelper::shadowTiles()
     };
 
     const QColor color = StyleConfigData::shadowColor();
-    const qreal strength = static_cast<qreal>(StyleConfigData::shadowStrength()) / 255.0;
 
-    const QSize boxSize = BoxShadowRenderer::calculateMinimumBoxSize(params.shadow1.radius)
-                              .expandedTo(BoxShadowRenderer::calculateMinimumBoxSize(params.shadow2.radius))
-                              .expandedTo(BoxShadowRenderer::calculateMinimumBoxSize(params.shadow3.radius));
+    // shadowIntensity {Low, Medium, High, Maximum}
+    const qreal intensityParams = lookupIntensityParams(StyleConfigData::shadowIntensity());
+    const qreal strength = static_cast<qreal>(StyleConfigData::shadowStrength() * intensityParams) / 255.0;
 
-    const qreal dpr = qApp->devicePixelRatio();
-    const qreal frameRadius = _helper.frameRadius(1);
+    const QSize boxSize =
+        BoxShadowRenderer::calculateMinimumBoxSize(params.shadow1.radius).expandedTo(BoxShadowRenderer::calculateMinimumBoxSize(params.shadow2.radius));
+
+    const qreal frameRadius = _helper.frameRadius();
 
     BoxShadowRenderer shadowRenderer;
     shadowRenderer.setBorderRadius(frameRadius);
     shadowRenderer.setBoxSize(boxSize);
-    shadowRenderer.setDevicePixelRatio(dpr);
 
     shadowRenderer.addShadow(params.shadow1.offset, params.shadow1.radius, withOpacity(color, params.shadow1.opacity * strength));
     shadowRenderer.addShadow(params.shadow2.offset, params.shadow2.radius, withOpacity(color, params.shadow2.opacity * strength));
-    shadowRenderer.addShadow(params.shadow3.offset, params.shadow3.radius, withOpacity(color, params.shadow3.opacity * strength));
 
     QImage shadowTexture = shadowRenderer.render();
 
-    const QRect outerRect(QPoint(0, 0), shadowTexture.size() / dpr);
+    const QRect outerRect(QPoint(0, 0), shadowTexture.size());
 
     QRect boxRect(QPoint(0, 0), boxSize);
     boxRect.moveCenter(outerRect.center());
@@ -241,7 +274,7 @@ TileSet ShadowHelper::shadowTiles()
     painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
     painter.drawRoundedRect(outerRect - margins, frameRadius, frameRadius);
 
-    // Draw outline.
+    // // Draw outline.
     painter.setPen(withOpacity(Qt::black, 0.1 * strength));
     painter.setBrush(Qt::NoBrush);
     painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
@@ -274,12 +307,9 @@ TileSet ShadowHelper::shadowTiles(const int frameRadius, CustomShadowParams shad
 
     const QSize boxSize = BoxShadowRenderer::calculateMinimumBoxSize(shadow1.radius).expandedTo(BoxShadowRenderer::calculateMinimumBoxSize(shadow2.radius));
 
-    const qreal dpr = qApp->devicePixelRatio();
-
     BoxShadowRenderer shadowRenderer;
     shadowRenderer.setBorderRadius(frameRadius);
     shadowRenderer.setBoxSize(boxSize);
-    shadowRenderer.setDevicePixelRatio(dpr);
 
     shadowRenderer.addShadow(shadow1.offset, shadow1.radius, shadow1.color);
     if (shadow2.radius > 0)
@@ -287,7 +317,7 @@ TileSet ShadowHelper::shadowTiles(const int frameRadius, CustomShadowParams shad
 
     QImage shadowTexture = shadowRenderer.render();
 
-    const QRect outerRect(QPoint(0, 0), shadowTexture.size() / dpr);
+    const QRect outerRect(QPoint(0, 0), shadowTexture.size());
 
     QRect boxRect(QPoint(0, 0), boxSize);
     boxRect.moveCenter(outerRect.center());
@@ -437,7 +467,7 @@ void ShadowHelper::installShadows(QWidget *widget)
         return;
 
     // create shadow tiles if needed
-    shadowTiles();
+    shadowTiles(widget);
     if (!_shadowTiles.isValid())
         return;
 
@@ -480,26 +510,29 @@ void ShadowHelper::installShadows(QWidget *widget)
 //_______________________________________________________
 QMargins ShadowHelper::shadowMargins(QWidget *widget) const
 {
-    const CompositeShadowParams params = lookupShadowParams(StyleConfigData::shadowSize());
+    CompositeShadowParams params = lookupShadowParams(StyleConfigData::shadowSize());
     if (params.isNone()) {
         return QMargins();
     }
 
+    qreal dpr = Helper::isWayland() ? 1 : widget->devicePixelRatioF();
+    params *= dpr;
+
     const QSize boxSize =
         BoxShadowRenderer::calculateMinimumBoxSize(params.shadow1.radius).expandedTo(BoxShadowRenderer::calculateMinimumBoxSize(params.shadow2.radius));
 
-    const QSize shadowSize = BoxShadowRenderer::calculateMinimumShadowTextureSize(boxSize, params.shadow1.radius, params.shadow1.offset)
-                                 .expandedTo(BoxShadowRenderer::calculateMinimumShadowTextureSize(boxSize, params.shadow2.radius, params.shadow2.offset));
+    const QSizeF shadowSize = BoxShadowRenderer::calculateMinimumShadowTextureSize(boxSize, params.shadow1.radius, params.shadow1.offset)
+                                  .expandedTo(BoxShadowRenderer::calculateMinimumShadowTextureSize(boxSize, params.shadow2.radius, params.shadow2.offset));
 
-    const QRect shadowRect(QPoint(0, 0), shadowSize);
+    const QRectF shadowRect(QPoint(0, 0), shadowSize);
 
-    QRect boxRect(QPoint(0, 0), boxSize);
+    QRectF boxRect(QPoint(0, 0), boxSize);
     boxRect.moveCenter(shadowRect.center());
 
-    QMargins margins(boxRect.left() - shadowRect.left() - Metrics::Shadow_Overlap - params.offset.x(),
-                     boxRect.top() - shadowRect.top() - Metrics::Shadow_Overlap - params.offset.y(),
-                     shadowRect.right() - boxRect.right() - Metrics::Shadow_Overlap + params.offset.x(),
-                     shadowRect.bottom() - boxRect.bottom() - Metrics::Shadow_Overlap + params.offset.y());
+    QMarginsF margins(boxRect.left() - shadowRect.left() - int(Metrics::Shadow_Overlap) - params.offset.x(),
+                      boxRect.top() - shadowRect.top() - int(Metrics::Shadow_Overlap) - params.offset.y(),
+                      shadowRect.right() - boxRect.right() - int(Metrics::Shadow_Overlap) + params.offset.x(),
+                      shadowRect.bottom() - boxRect.bottom() - int(Metrics::Shadow_Overlap) + params.offset.y());
 
     if (widget->inherits("QBalloonTip")) {
         // Balloon tip needs special margins to deal with the arrow.
@@ -518,9 +551,9 @@ QMargins ShadowHelper::shadowMargins(QWidget *widget) const
         }
     }
 
-    margins *= _helper.devicePixelRatio(_shadowTiles.pixmap(0));
+    // margins *= _helper.devicePixelRatio(_shadowTiles.pixmap(0));
 
-    return margins;
+    return margins.toMargins();
 }
 
 //_______________________________________________________

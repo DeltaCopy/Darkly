@@ -350,7 +350,7 @@ public:
     }
 
     //* scrollbar handle
-    void renderScrollBarHandle(QPainter *, const QRectF &, const QColor &) const;
+    void renderScrollBarHandle(QPainter *, const QRectF &, const QColor &fg, QColor bg = QColor()) const;
 
     //* toolbar handle
     void renderToolBarHandle(QPainter *painter, const QRect &rect, const QColor &color) const
@@ -420,10 +420,13 @@ public:
     }
 
     //* return a QRectF with the appropriate size for a rectangle with a pen stroke
-    QRectF strokedRect(const QRectF &rect, const int penWidth = PenWidth::Frame) const;
+    QRectF strokedRect(const QRectF &rect, const qreal penWidth = PenWidth::Frame) const;
 
-    //* return a QRectF with the appropriate size for a rectangle with a pen stroke
-    QRectF strokedRect(const QRect &rect, const int penWidth = PenWidth::Frame) const;
+    //* return a QRectF with the appropriate size for a rectangle with a shadow around it
+    QRectF shadowedRect(const QRectF &rect, const qreal shadowSize = PenWidth::Shadow) const
+    {
+        return rect.adjusted(shadowSize, shadowSize, -shadowSize, -shadowSize);
+    }
 
     QPixmap coloredIcon(const QIcon &icon,
                         const QPalette &palette,
@@ -431,6 +434,9 @@ public:
                         qreal devicePixelRatio,
                         QIcon::Mode mode = QIcon::Normal,
                         QIcon::State state = QIcon::Off);
+
+    // MenuBar, ToolBar, TabBar background color opacity
+    QColor transparentBarBgColor(QColor, QPainter *, const QRect &, BarType) const;
 
 protected:
     //* return rounded path in a given rect, with only selected corners rounded, and for a given radius

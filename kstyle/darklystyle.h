@@ -480,6 +480,10 @@ private:
         return QRectF(rect.left() + (rect.width() - width) / 2, rect.top() + (rect.height() - height) / 2, width, height);
     }
 
+    static int sliderTickMarksLength();
+
+    static QRect sliderRectWithoutTickMarks(const QStyleOptionSlider *option);
+
     /*
     Checks whether the point is before the bound rect for bound of given orientation.
     This is needed to implement custom number of buttons in scrollbars,
@@ -525,10 +529,18 @@ private:
     //* get widget parent
     QWidget *getParent(const QWidget *widget, int level) const;
 
+    qreal scrollBarTransientAnimationOpacity(const QStyleOption *option, const QWidget *widget) const;
+
     //*@name scrollbar button types (for addLine and subLine )
     //@{
     ScrollBarButtonType _addLineButtons = SingleButton;
     ScrollBarButtonType _subLineButtons = SingleButton;
+    //@}
+
+    //*@name scrollbar transient
+    //@{
+    bool _transientScrollBar = false;
+    bool _transientScrollBarAlwaysShowSlim = false;
     //@}
 
     //* helper
@@ -606,6 +618,9 @@ private:
     bool _subApp = false;
     //* Some apps shouldn't have translucent windows.
     bool _isOpaque = false;
+
+    // blur is required for toolbar, menubar, tabbar if opaque
+    bool _isBarsOpaque = false;
 };
 
 //_________________________________________________________________________

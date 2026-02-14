@@ -44,8 +44,13 @@ using ScopedPointer = QScopedPointer<T, QScopedPointerPodDeleter>;
 //* metrics
 enum Metrics {
     // frames
-    Frame_FrameWidth = 5,
+    Frame_FrameWidth = 2,
     // Frame_FrameRadius = 6,
+
+    // general
+    ArrowSize = 10,
+    SmallArrowSize = 5,
+
 
     // layout
     Layout_TopLevelMarginWidth = 10,
@@ -58,7 +63,7 @@ enum Metrics {
     // menu items
     Menu_FrameWidth = 4,
     MenuItem_MarginWidth = 5,
-    MenuItem_MarginHeight = 3,
+    MenuItem_MarginHeight = 0,
     MenuItem_ItemSpacing = 4,
     MenuItem_AcceleratorSpace = 16,
     MenuButton_IndicatorWidth = 20,
@@ -100,6 +105,9 @@ enum Metrics {
     ScrollBar_NoButtonHeight = (ScrollBar_Extend - ScrollBar_SliderWidth) / 2,
     ScrollBar_SingleButtonHeight = ScrollBar_Extend,
     ScrollBar_DoubleButtonHeight = 2 * ScrollBar_Extend,
+    ScrollBar_TransientExtend = 6,
+    ScrollBar_TransientSliderWidth = 4,
+
 
     // toolbars
     ToolBar_FrameWidth = 2,
@@ -191,7 +199,7 @@ enum AnimationMode {
 };
 
 Q_DECLARE_FLAGS(AnimationModes, AnimationMode)
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(AnimationModes)
 //* extra animation parameters for custom widget animations
 enum AnimationParameter {
     AnimationDefaut = 0,
@@ -201,7 +209,7 @@ enum AnimationParameter {
 };
 
 Q_DECLARE_FLAGS(AnimationParameters, AnimationParameter)
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(AnimationParameters)
 //* corners
 enum Corner {
     CornerTopLeft = 0x1,
@@ -216,7 +224,7 @@ enum Corner {
 };
 
 Q_DECLARE_FLAGS(Corners, Corner)
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(Corners)
 //* sides
 enum Side {
     SideLeft = 0x1,
@@ -227,7 +235,7 @@ enum Side {
 };
 
 Q_DECLARE_FLAGS(Sides, Side)
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(Sides)
 //* checkbox state
 enum CheckBoxState {
     CheckOff,
@@ -261,11 +269,11 @@ enum ButtonType {
     ButtonRestore
 };
 
+// toolbar, menubar, tabbar opacity
+enum BarType {
+    MenuBar,
+    ToolBar,
+    TabBar
+};
 }
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(Darkly::AnimationModes)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Darkly::AnimationParameters)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Darkly::Corners)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Darkly::Sides)
-
 #endif

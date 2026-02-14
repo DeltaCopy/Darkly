@@ -34,6 +34,8 @@
 
 #include <KWindowEffects>
 
+#include <QAbstractScrollArea>
+#include <QComboBox>
 #include <QEvent>
 #include <QMainWindow>
 #include <QMenu>
@@ -42,6 +44,7 @@
 #include <QToolBar>
 #include <QVector>
 // #include <QDebug>
+
 namespace
 {
 
@@ -157,7 +160,6 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
         return roundedRegion(rect, StyleConfigData::cornerRadius() + 1, true, true, true, true);
     } else {
         // blur entire window
-        // QT 6.8 now causes issues here when the alpha channel of the color scheme is < 255 with systemsettings
         if (widget->palette().color(QPalette::Window).alpha() < 255)
             return roundedRegion(rect, StyleConfigData::cornerRadius(), false, false, true, true);
 
@@ -165,7 +167,8 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
         QRegion region;
 
         // toolbar and menubar
-        if (_translucentTitlebar) {
+        if (_translucentTitlebar || StyleConfigData::menuBarOpacity() < 100 || StyleConfigData::toolBarOpacity() < 100
+            || StyleConfigData::dolphinSidebarOpacity() < 100) {
             // menubar
             int menubarHeight = 0;
             if (QMainWindow *mw = qobject_cast<QMainWindow *>(widget)) {
@@ -197,7 +200,7 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
                         orientation = tb->orientation();
                     }
 
-                    // test against the previous best caditate
+                    // test against the previous best candidate
                     else {
                         if ((tb->y() < mainToolbar.y()) || (tb->y() == mainToolbar.y() && tb->x() < mainToolbar.x())) {
                             mainToolbar = QRect(tb->pos(), tb->rect().size());
@@ -240,9 +243,9 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
             }
         }
 
-        // dolphin's sidebar
-        if (StyleConfigData::dolphinSidebarOpacity() < 100) {
-            if (_isDolphin) {
+        if (_isDolphin) {
+            // dolphin's sidebar
+            if (StyleConfigData::dolphinSidebarOpacity() < 100) {
                 // sidetoolbar
                 if (!_translucentTitlebar) {
                     QToolBar *toolbar = widget->window()->findChild<QToolBar *>(QString(), Qt::FindDirectChildrenOnly);
@@ -273,18 +276,15 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
                 }
 
                 // settings page
-                if ((widget->windowFlags() & Qt::WindowType_Mask) == Qt::Dialog) {
-                    QList<QWidget *> dialogWidgets = widget->findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly);
-                    for (auto w : dialogWidgets) {
-                        if (w->inherits("KPageWidget")) {
-                            QList<QWidget *> KPageWidgets = w->findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly);
-                            for (auto wid : KPageWidgets) {
-                                if (wid->property(PropertyNames::sidePanelView).toBool()) {
-                                    region += roundedRegion(QRect(wid->pos(), wid->rect().size()), StyleConfigData::cornerRadius(), false, false, true, false);
-                                    break;
-                                }
-                            }
-                        }
+                // moved to blurSettingsDialogRegion
+            }
+
+            // Dolphin main view
+            if (StyleConfigData::dolphinViewOpacity() < 100) {
+                QList<QAbstractScrollArea *> itemContainers = widget->findChildren<QAbstractScrollArea *>();
+                for (QAbstractScrollArea *container : itemContainers) {
+                    if (container->inherits("KItemListContainer") && container->isVisible()) {
+                        region += QRect(container->mapTo(widget, QPoint(0, 0)), container->rect().size());
                     }
                 }
             }
@@ -308,8 +308,80 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
             }*/
         }
 
+        // tabs
+        if (StyleConfigData::tabBarOpacity() < 100) {
+            region += blurTabWidgetRegion(widget);
+        }
+
+        // settings
+
+        region += blurSettingsDialogRegion(widget);
+
         return region;
     }
+}
+
+//___________________________________________________________
+QRegion BlurHelper::blurTabWidgetRegion(QWidget *widget) const
+{
+    QRegion region;
+
+    // tabs blur only works on dolphin / konsole main windows
+
+    if (widget->inherits("Konsole::MainWindow") || widget->inherits("DolphinMainWindow")) {
+        const QTabWidget *tw = widget->window()->findChild<QTabWidget *>(QString(), Qt::FindDirectChildrenOnly);
+
+        if (tw && tw->isVisible()) {
+            if (tw->inherits("DolphinTabWidget") || tw->inherits("Konsole::TabbedViewContainer")) {
+                // use the tabbar size as the blur region should only focus on the tabbar not the entire tabwidget
+                // the width of the tabbar is always -1 smaller than the tabwidget width so increment it
+                QSize tbSize(tw->tabBar()->rect().size());
+                tbSize.rwidth() += 1;
+                region += roundedRegion(QRect(tw->pos(), tbSize), StyleConfigData::cornerRadius(), false, false, true, false);
+            }
+        }
+    }
+
+    return region;
+}
+
+//___________________________________________________________
+QRegion BlurHelper::blurSettingsDialogRegion(QWidget *widget) const
+{
+    QRegion region;
+
+    // settings only change it for konsole or dolphin about window
+    if ((widget->windowFlags() & Qt::WindowType_Mask) == Qt::Dialog
+        && (widget->inherits("KAboutApplicationDialog") || widget->inherits("KDEPrivate::KAboutKdeDialog"))) {
+        QList<QWidget *> widgets = widget->findChildren<QWidget *>();
+        if (widgets.length() > 0) {
+            for (auto w : widgets) {
+                if (qobject_cast<QTabWidget *>(w) && (widget->inherits("KAboutApplicationDialog") || widget->inherits("KDEPrivate::KAboutKdeDialog"))) {
+                    // about dialog
+                    const QTabWidget *tw = qobject_cast<QTabWidget *>(w);
+                    QSize tbSize(tw->rect().size());
+                    // the blur region is too small without adjusting the height of the tabbar height
+                    tbSize.setHeight(tw->tabBar()->rect().height() + 4);
+                    region += roundedRegion(QRect(tw->pos(), tbSize), StyleConfigData::cornerRadius(), false, false, true, false);
+                } else {
+                    // settings main dialog
+                    region += roundedRegion(QRect(w->mapToGlobal(w->pos()), w->rect().size()), StyleConfigData::cornerRadius(), false, false, true, false);
+                }
+                if (w->inherits("KPageWidget")) {
+                    // sidebar
+                    QList<QWidget *> KPageWidgets = w->findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly);
+                    for (auto wid : KPageWidgets) {
+                        if (wid->property(PropertyNames::sidePanelView).toBool()) {
+                            region += roundedRegion(QRect(wid->pos(), wid->rect().size()), StyleConfigData::cornerRadius(), false, false, true, false);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return region;
 }
 
 //___________________________________________________________

@@ -50,6 +50,12 @@ struct ShadowParams {
     QPoint offset;
     int radius = 0;
     qreal opacity = 0;
+
+    void operator*=(qreal factor)
+    {
+        offset *= factor;
+        radius = qRound(radius * factor);
+    }
 };
 
 struct CustomShadowParams {
@@ -70,23 +76,28 @@ struct CustomShadowParams {
 struct CompositeShadowParams {
     CompositeShadowParams() = default;
 
-    CompositeShadowParams(const QPoint &offset, const ShadowParams &shadow1, const ShadowParams &shadow2, const ShadowParams &shadow3)
+    CompositeShadowParams(const QPoint &offset, const ShadowParams &shadow1, const ShadowParams &shadow2)
         : offset(offset)
         , shadow1(shadow1)
         , shadow2(shadow2)
-        , shadow3(shadow3)
     {
     }
 
     bool isNone() const
     {
-        return qMax(shadow1.radius, qMax(shadow2.radius, shadow3.radius)) == 0;
+        return qMax(shadow1.radius, shadow2.radius) == 0;
     }
 
     QPoint offset;
     ShadowParams shadow1;
     ShadowParams shadow2;
-    ShadowParams shadow3;
+
+    void operator*=(qreal factor)
+    {
+        offset *= factor;
+        shadow1 *= factor;
+        shadow2 *= factor;
+    }
 };
 
 //* handle shadow pixmaps passed to window manager via X property
@@ -103,6 +114,9 @@ public:
 
     //* shadow params from size enum
     static CompositeShadowParams lookupShadowParams(int shadowSizeEnum);
+
+    //* shadow intensity params from intensity enum
+    static int lookupIntensityParams(int shadowIntensityEnum);
 
     //* reset
     void reset();
@@ -121,7 +135,7 @@ public:
 
     //* shadow tiles
     /** is public because it is also needed for mdi windows */
-    TileSet shadowTiles();
+    TileSet shadowTiles(QWidget *);
     static TileSet shadowTiles(const int frameRadius, CustomShadowParams shadow1, CustomShadowParams shadow2 = CustomShadowParams());
 
 protected Q_SLOTS:

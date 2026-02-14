@@ -20,6 +20,7 @@
 #include "darklyhelper.h"
 
 #include "darkly.h"
+#include "darklypropertynames.h"
 
 #include <KColorUtils>
 #include <KIconLoader>
@@ -456,7 +457,7 @@ void Helper::renderFrame(QPainter *painter, const QRect &rect, const QColor &col
     painter->setRenderHint(QPainter::Antialiasing);
 
     // QRectF frameRect( rect.adjusted( 1, 1, -1, -1 ) );
-    QRectF frameRect(rect.adjusted(Metrics::Frame_FrameWidth, Metrics::Frame_FrameWidth, -Metrics::Frame_FrameWidth, -Metrics::Frame_FrameWidth));
+    QRectF frameRect(rect.adjusted(Metrics::Frame_FrameWidth, Metrics::Frame_FrameWidth, StyleConfigData::fancyMargins() ? -6 : -Metrics::Frame_FrameWidth, -Metrics::Frame_FrameWidth));
     // QRectF frameRect(rect);
     qreal radius(frameRadius(PenWidth::NoPen, -1));
     painter->setPen(Qt::NoPen);
@@ -662,9 +663,17 @@ void Helper::topHighlight(QPainter *painter, const QRectF &rect, const int radiu
 
     p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
     p.setBrush(Qt::black);
-    p.drawRoundedRect(QRect(0, 1, rect.width(), rect.height()), radius, radius);
 
+    if (StyleConfigData::fullOutline())
+    {
+    p.drawRoundedRect(QRect(1, 1, rect.width() - 2, rect.height() - 2), radius, radius);
     painter->drawPixmap(QRect(rect.x(), rect.y(), rect.width(), rect.height()), pixmap);
+    }
+    else
+    {
+    p.drawRoundedRect(QRect(0, 1, rect.width(), rect.height()), radius, radius);
+    painter->drawPixmap(QRect(rect.x(), rect.y(), rect.width(), rect.height()), pixmap);
+    }
 }
 
 //______________________________________________________________________________
@@ -685,13 +694,9 @@ void Helper::renderButtonFrame(QPainter *painter,
 
     painter->setPen(Qt::NoPen);
 
-    // copy rect
-    QRectF frameRect(rect);
-
     // reduce the size of the actual button, the rest will be the shadow
-    frameRect.adjust(5, 5, -5, -5);
-
-    qreal radius(frameRadius() - 1);
+    QRectF frameRect(rect.adjusted(Metrics::Frame_FrameWidth, Metrics::Frame_FrameWidth, -Metrics::Frame_FrameWidth, -Metrics::Frame_FrameWidth));
+    qreal radius(frameRadius() - qreal(Metrics::Frame_FrameWidth));
 
     if (sunken) {
         frameRect.translate(0, 1);
@@ -1090,11 +1095,14 @@ void Helper::renderCheckBox(QPainter *painter,
         background = background.lighter(115);
 
     // float and sunken effect
+    if (StyleConfigData::sunkenEffect())
+    {
     if (sunken) {
         frameRect.translate(1, 1);
         background = background.darker(115);
     } else if (state == CheckOn || (state == CheckOff && mouseOver))
         frameRect.translate(-1, -1);
+    }
 
     if (state == CheckOff) {
         // shadow
@@ -1132,6 +1140,24 @@ void Helper::renderCheckBox(QPainter *painter,
         painter->setPen(pen);
         painter->setBrush(Qt::NoBrush);
 
+        if (StyleConfigData::useNewCheckBox())
+        {
+        QPainterPath checkShadow;
+        checkShadow.moveTo(5 + x, 9.5 + y);
+        checkShadow.lineTo(7 + x, 12 + y);
+        checkShadow.lineTo(12 + x, 6 + y);
+        painter->drawPath(checkShadow);
+
+        QPainterPath check;
+        pen.setColor(color);
+        painter->setPen(pen);
+        check.moveTo(5 + x, 8.5 + y);
+        check.lineTo(7 + x, 11 + y);
+        check.lineTo(12 + x, 5 + y);
+        painter->drawPath(check);
+        }
+        else
+        {
         QPainterPath checkShadow;
         checkShadow.moveTo(5 + x, 8 + y);
         checkShadow.lineTo(6 + x, 12 + y);
@@ -1145,6 +1171,7 @@ void Helper::renderCheckBox(QPainter *painter,
         check.lineTo(6 + x, 11 + y);
         check.lineTo(12 + x, 5 + y);
         painter->drawPath(check);
+        }
 
     } else if (state == CheckPartial) {
         if (darkTheme) {
@@ -1167,20 +1194,22 @@ void Helper::renderCheckBox(QPainter *painter,
     } else if (state == CheckAnimated) {
         if (animation == 0) {
             // small shadow
+            if (StyleConfigData::sunkenEffect()){
             if (mouseOver && !sunken) {
                 renderBoxShadow(painter, frameRect, 0, 1, 5, QColor(0, 0, 0, 120), 1, windowActive);
                 renderBoxShadow(painter, frameRect, 0, 1, 2, QColor(0, 0, 0, 90), radius, windowActive);
             } else {
                 renderBoxShadow(painter, frameRect, 0, 1, 2, QColor(0, 0, 0, 160), radius, windowActive);
                 renderOutline(painter, frameRect, radius, 4);
-            }
+            }}
             painter->setBrush(mouseOver ? background.lighter(115) : background);
             painter->drawRoundedRect(frameRect, radius, radius);
 
         } else if ((animation > 0 && animation < 1) || animation == -1) {
             if (animation == -1)
                 animation = 1.0;
-            frameRect.translate(-1, -1);
+            if (StyleConfigData::sunkenEffect()){
+            frameRect.translate(-1, -1);}
             if (darkTheme)
                 renderBoxShadow(painter, frameRect, 0, 1, 4, mouseOver ? background.darker(140) : background.darker(200), radius, windowActive);
             else {
@@ -1207,6 +1236,24 @@ void Helper::renderCheckBox(QPainter *painter,
             painter->setPen(pen);
             painter->setBrush(Qt::NoBrush);
 
+            if (StyleConfigData::useNewCheckBox())
+            {
+            QPainterPath checkShadow;
+            checkShadow.moveTo(5 + x, 9.5 + y);
+            checkShadow.lineTo(5 + 2 * animation + x, 9.5 + 2.5 * animation + y);
+            checkShadow.lineTo(7 + 5 * animation + x, 12 - 4 * animation * 1.5 + y);
+            painter->drawPath(checkShadow);
+
+            QPainterPath check;
+            pen.setColor(alphaColor(color, 1.0 * animation));
+            painter->setPen(pen);
+            check.moveTo(5 + x, 8.5 + y);
+            check.lineTo(5 + 2 * animation + x, 8.5 + 2.5 * animation + y);
+            check.lineTo(7 + 5 * animation + x, 11 - 4 * animation * 1.5 + y);
+            painter->drawPath(check);
+            }
+            else
+            {
             QPainterPath checkShadow;
             checkShadow.moveTo(animation * 5 + x, 8 + y);
             checkShadow.lineTo(animation * 6 + x, 12 + y);
@@ -1220,6 +1267,8 @@ void Helper::renderCheckBox(QPainter *painter,
             check.lineTo(animation * 6 + x, 11 + y);
             check.lineTo(animation * 12 + x, 5 + y);
             painter->drawPath(check);
+            }
+
         }
     }
 
@@ -1253,10 +1302,13 @@ void Helper::renderRadioButton(QPainter *painter,
     frameRect.adjust(Metrics::Frame_FrameWidth - 1, Metrics::Frame_FrameWidth - 1, -Metrics::Frame_FrameWidth + 1, -Metrics::Frame_FrameWidth + 1);
 
     // float and sunken effect
+    if (StyleConfigData::sunkenEffect())
+    {
     if (sunken)
         frameRect.translate(1, 1);
     else if (state == RadioOn || (state == RadioOff && mouseOver))
         frameRect.translate(-1, -1);
+    }
 
     // mark
     if (state == RadioOn) {
@@ -1291,8 +1343,9 @@ void Helper::renderRadioButton(QPainter *painter,
             if (animation > 1)
                 animation *= 1.1;
 
+            if (StyleConfigData::sunkenEffect()){
             frameRect.translate(-1 * animation, -1 * animation);
-
+            }
             // radioOff shadow fade
             if (mouseOver)
                 renderEllipseShadow(painter,
@@ -1534,7 +1587,7 @@ void Helper::renderProgressBarBusyContents(QPainter *painter,
 }
 
 //______________________________________________________________________________
-void Helper::renderScrollBarHandle(QPainter *painter, const QRectF &rect, const QColor &color) const
+void Helper::renderScrollBarHandle(QPainter *painter, const QRectF &rect, const QColor &fg, QColor bg) const
 {
     // setup painter
     painter->setRenderHint(QPainter::Antialiasing, true);
@@ -1543,11 +1596,14 @@ void Helper::renderScrollBarHandle(QPainter *painter, const QRectF &rect, const 
     const qreal radius(0.5 * std::min({baseRect.width(), baseRect.height()}));
 
     // content
-    if (color.isValid()) {
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(color);
-        painter->drawRoundedRect(baseRect, radius, radius);
+    painter->setPen(Qt::NoPen);
+    if (bg.isValid()) {
+        painter->setBrush(KColorUtils::overlayColors(bg, alphaColor(fg, 0.5)));
+    } else {
+        painter->setBrush(fg);
     }
+    painter->drawRoundedRect(baseRect, radius, radius);
+
 }
 
 //______________________________________________________________________________
@@ -1716,7 +1772,7 @@ bool Helper::isWayland()
 }
 
 //______________________________________________________________________________
-QRectF Helper::strokedRect(const QRectF &rect, const int penWidth) const
+QRectF Helper::strokedRect(const QRectF &rect, const qreal penWidth) const
 {
     /* With a pen stroke width of 1, the rectangle should have each of its
      * sides moved inwards by half a pixel. This allows the stroke to be
@@ -1726,11 +1782,6 @@ QRectF Helper::strokedRect(const QRectF &rect, const int penWidth) const
      */
     qreal adjustment = 0.5 * penWidth;
     return QRectF(rect).adjusted(adjustment, adjustment, -adjustment, -adjustment);
-}
-
-QRectF Helper::strokedRect(const QRect &rect, const int penWidth) const
-{
-    return strokedRect(QRectF(rect), penWidth);
 }
 
 //______________________________________________________________________________
@@ -1813,7 +1864,8 @@ bool Helper::hasAlphaChannel(const QWidget *widget) const
 //____________________________________________________________________
 bool Helper::shouldWindowHaveAlpha(const QPalette &palette, bool isDolphin) const
 {
-    if (_activeTitleBarColor.alphaF() < 1.0 || (StyleConfigData::dolphinSidebarOpacity() < 100 && isDolphin) || palette.color(QPalette::Window).alpha() < 255) {
+    if (_activeTitleBarColor.alphaF() < 1.0 || (StyleConfigData::dolphinSidebarOpacity() < 100 && isDolphin)
+        || (StyleConfigData::dolphinViewOpacity() < 100 && isDolphin) || palette.color(QPalette::Window).alpha() < 255) {
         return true;
     }
     return false;
@@ -1856,7 +1908,7 @@ bool Helper::shouldDrawToolsArea(const QWidget *widget) const
     static bool isAuto = false;
     static QString borderSize;
     if (!_cachedAutoValid) {
-        KConfigGroup kdecorationGroup(_config->group(QStringLiteral("org.kde.kdecoration2")));
+        KConfigGroup kdecorationGroup(_config->group(QStringLiteral("org.kde.kdecoration3")));
         isAuto = kdecorationGroup.readEntry("BorderSizeAuto", true);
         borderSize = kdecorationGroup.readEntry("BorderSize", "Normal");
         _cachedAutoValid = true;
@@ -1886,4 +1938,58 @@ bool Helper::shouldDrawToolsArea(const QWidget *widget) const
     }
     return true;
 }
+
+//______________________________________________________________________________________
+QColor Helper::transparentBarBgColor(QColor bgColor, QPainter *painter, const QRect &rect, BarType barType) const
+{
+    switch (barType) {
+    case BarType::MenuBar: {
+        if (StyleConfigData::menuBarOpacity() == 100) {
+            // opacity is at 100%
+            bgColor.setAlphaF(1.0);
+        } else if (StyleConfigData::menuBarOpacity() == 0) {
+            // fully transparent
+            bgColor.setAlphaF(0.0);
+            renderTransparentArea(painter, rect);
+        } else if (StyleConfigData::menuBarOpacity() < 100 && StyleConfigData::menuBarOpacity() > 0) {
+            // lower the opacity
+            bgColor.setAlphaF(StyleConfigData::menuBarOpacity() / 100.0);
+            renderTransparentArea(painter, rect);
+        }
+        return bgColor;
+    }
+    case BarType::ToolBar: {
+        if (StyleConfigData::toolBarOpacity() == 100) {
+            // opacity is at 100%
+            bgColor.setAlphaF(1.0);
+        } else if (StyleConfigData::toolBarOpacity() == 0) {
+            // fully transparent
+            bgColor.setAlphaF(0.0);
+            renderTransparentArea(painter, rect);
+        } else if (StyleConfigData::toolBarOpacity() < 100 && StyleConfigData::toolBarOpacity() > 0) {
+            // lower the opacity
+            bgColor.setAlphaF(StyleConfigData::toolBarOpacity() / 100.0);
+            renderTransparentArea(painter, rect);
+        }
+        return bgColor;
+    }
+    case BarType::TabBar: {
+        if (StyleConfigData::tabBarOpacity() == 100) {
+            // opacity is at 100%
+            bgColor.setAlphaF(1.0);
+        } else if (StyleConfigData::tabBarOpacity() == 0) {
+            // fully transparent
+            bgColor.setAlphaF(0.0);
+            renderTransparentArea(painter, rect);
+        } else if (StyleConfigData::tabBarOpacity() < 100 && StyleConfigData::tabBarOpacity() > 0) {
+            // lower the opacity
+            bgColor.setAlphaF(StyleConfigData::tabBarOpacity() / 100.0);
+            renderTransparentArea(painter, rect);
+        }
+        return bgColor;
+    }
+    default:
+        return bgColor;
+    }
 }
+} // namespace

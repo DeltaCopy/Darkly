@@ -70,6 +70,8 @@
 #include <QTreeView>
 #include <QWidgetAction>
 #include <QWindow>
+#include <QQuickWidget>
+#include <QTimer>
 
 #if DARKLY_HAVE_QTQUICK
 #include <QQuickWindow>
@@ -259,6 +261,86 @@ void Style::polish(QApplication *app)
 }
 
 //______________________________________________________________
+class ParentResizeFilter : public QObject {
+public:
+    explicit ParentResizeFilter(QWidget* overlay)
+    : QObject(overlay), m_overlay(overlay) {}
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::Resize && m_overlay && m_overlay->parentWidget() == watched) {
+            m_overlay->setGeometry(m_overlay->parentWidget()->rect());
+            m_overlay->update();
+        }
+        // call base implementation
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    QWidget* m_overlay;
+};
+
+class RoundedOuterOutlineOverlay : public QWidget {
+public:
+    RoundedOuterOutlineOverlay(
+        QWidget* parent,
+        bool isDolphin,
+        int radius = StyleConfigData::cornerRadius(),
+                               int thickness = StyleConfigData::cornerRadius() * 2)
+    : QWidget(parent)
+    , m_isDolphin(isDolphin)
+    , m_radius(radius)
+    , m_thickness(thickness)
+    {
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_NoSystemBackground);
+        show();
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override {
+        if (!parentWidget()) return;
+
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        QPalette::ColorGroup group =
+        parentWidget()->isActiveWindow()
+        ? QPalette::Active
+        : QPalette::Inactive;
+
+        QColor outlineColor =
+        parentWidget()->style()->standardPalette().color(group, QPalette::Window);
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(outlineColor);
+
+        QPainterPath path;
+        path.addRect(rect());
+
+        QRectF innerRect = rect();
+        innerRect.adjust(1, 1, m_isDolphin ? -5 : -1, -2);
+
+        path.addRoundedRect(innerRect, m_radius, m_radius);
+        path.setFillRule(Qt::OddEvenFill);
+
+        if (outlineColor.alpha() < 255)
+        {
+        painter.setCompositionMode(QPainter::CompositionMode_Clear);
+        painter.drawPath(path);
+        }
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+        painter.drawPath(path);
+    }
+
+private:
+    bool m_isDolphin;
+    int  m_radius;
+    int  m_thickness;
+};
+
+//______________________________________________________________
 void Style::polish(QWidget *widget)
 {
     if (!widget)
@@ -286,6 +368,39 @@ void Style::polish(QWidget *widget)
         addEventFilter( widget );
         widget->setProperty( "HOVER", false );
     }*/
+
+    // remove auto background from combobox popup
+    if (auto view = const_cast<QAbstractItemView*>(itemViewParent(widget))) {
+        QWidget* w = view;
+        while (w) {
+            if (qobject_cast<QComboBox*>(w)) {
+                view->setAutoFillBackground(false);
+                view->viewport()->setAutoFillBackground(false);
+                break;
+            }
+            w = w->parentWidget();
+        }
+    }
+
+    if (qobject_cast<QLabel*>(widget)) {
+        QWidget* parent = widget->parentWidget();
+        if (!parent)
+            return;
+
+        while (parent) {
+            if (parent->inherits("KMessageWidget")) {
+                if (!parent->property("_darklyRoundedOverlay").isValid())
+                {
+                    auto overlay = new RoundedOuterOutlineOverlay(parent, _isDolphin, StyleConfigData::cornerRadius(), StyleConfigData::cornerRadius() * 2);
+                    overlay->lower();
+                    parent->installEventFilter(new ParentResizeFilter(overlay));
+                    parent->setProperty("_darklyRoundedOverlay", QVariant::fromValue(static_cast<QObject*>(overlay)));
+                }
+                break;
+            }
+            parent = parent->parentWidget();
+        }
+    }
 
     // enforce translucency for drag and drop window
     if (widget->testAttribute(Qt::WA_X11NetWmWindowTypeDND) && _helper->compositingActive()) {
@@ -368,7 +483,7 @@ void Style::polish(QWidget *widget)
                 widget->setAttribute(Qt::WA_StyledBackground);
 
             // setting Qt::WA_TranslucentBackground enables Qt::WA_NoSystemBackground unset here to stop flickering during repaint events on resizing
-            if (StyleConfigData::transparentDolphinView() && widget->testAttribute(Qt::WA_NoSystemBackground))
+            if (StyleConfigData::dolphinViewOpacity() < 100 && widget->testAttribute(Qt::WA_NoSystemBackground))
                 widget->setAttribute(Qt::WA_NoSystemBackground, false);
 
             _translucentWidgets.insert(widget);
@@ -378,7 +493,8 @@ void Style::polish(QWidget *widget)
 
             // blur
             if (widget->palette().color(widget->backgroundRole()).alpha() < 255 || _helper->titleBarColor(true).alphaF() * 100.0 < 100
-                || (StyleConfigData::dolphinSidebarOpacity() < 100 && _isDolphin)) {
+                || (StyleConfigData::dolphinSidebarOpacity() < 100 && _isDolphin)
+                || (StyleConfigData::dolphinViewOpacity() < 100 && _isDolphin)) {
                 _blurHelper->registerWidget(widget, _isDolphin);
             }
         }
@@ -386,10 +502,34 @@ void Style::polish(QWidget *widget)
     }
 
     // hack Dolphin's view
-    if (_isDolphin && qobject_cast<QAbstractScrollArea *>(getParent(widget, 2))
-        && !qobject_cast<QAbstractScrollArea *>(getParent(widget, 3))) {
+    if ((_isDolphin && qobject_cast<QAbstractScrollArea *>(getParent(widget, 2))
+    && !qobject_cast<QAbstractScrollArea *>(getParent(widget, 3))))
+    {
         if (widget->autoFillBackground())
             widget->setAutoFillBackground(false);
+    }
+
+    if (widget->inherits("QQuickWidget")) {
+        // Check if it is a child of FocusHackWidget
+        QWidget* parent = widget->parentWidget();
+        bool isChildOfFocusHack = false;
+        while (parent) {
+            if (parent->inherits("FocusHackWidget")) {
+                isChildOfFocusHack = true;
+                break;
+            }
+            parent = parent->parentWidget();
+        }
+
+        if (isChildOfFocusHack) {
+            auto quickWidget = qobject_cast<QQuickWidget*>(widget);
+            if (quickWidget) {
+                quickWidget->setClearColor(Qt::transparent);
+            }
+
+            widget->setAttribute(Qt::WA_TranslucentBackground);
+            widget->setAttribute(Qt::WA_OpaquePaintEvent, false);
+        }
     }
 
     // scrollarea polishing is somewhat complex. It is moved to a dedicated method
@@ -524,6 +664,18 @@ void Style::polishScrollArea(QAbstractScrollArea *scrollArea)
         scrollArea->viewport()->setForegroundRole(QPalette::WindowText);
     }
 
+    // Dolphin main view transparency
+    if (_isDolphin && StyleConfigData::dolphinViewOpacity() < 100 && scrollArea->inherits("KItemListContainer")) {
+        if (auto *viewport = scrollArea->viewport()) {
+            viewport->setAutoFillBackground(false);
+            for (QWidget *child : viewport->findChildren<QWidget *>()) {
+                if (child->parent() == viewport) {
+                    child->setAutoFillBackground(false);
+                }
+            }
+        }
+    }
+
     // add event filter, to make sure proper background is rendered behind scrollbars
     addEventFilter(scrollArea);
 
@@ -655,7 +807,7 @@ int Style::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWi
         // from kvantum
         else if (widget && _isDolphin) {
             if (QWidget *pw = widget->parentWidget()) {
-                if (StyleConfigData::transparentDolphinView()
+                if (StyleConfigData::dolphinViewOpacity() < 100
                     // not renaming area
                     && !qobject_cast<QAbstractScrollArea *>(pw)
                     // only Dolphin's view
@@ -772,11 +924,27 @@ int Style::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWi
     case PM_TabBarScrollButtonWidth:
         return 28;
 
-    // scrollbars
+        // scrollbars
     case PM_ScrollBarExtent:
+        if (proxy()->styleHint(SH_ScrollBar_Transient, option, widget)) {
+            if (option && (option->state & State_MouseOver)) {
+                return Metrics::ScrollBar_Extend;
+            }
+
+            const QObject *scrollBarObject = widget;
+            if (!scrollBarObject && option) {
+                scrollBarObject = option->styleObject;
+            }
+            return _animations->scrollBarEngine().isNeedPreExpand(scrollBarObject) ? Metrics::ScrollBar_Extend : Metrics::ScrollBar_TransientExtend;
+        }
         return Metrics::ScrollBar_Extend;
     case PM_ScrollBarSliderMin:
         return Metrics::ScrollBar_MinSliderHeight;
+    case PM_ScrollView_ScrollBarOverlap:
+        if (proxy()->styleHint(SH_ScrollBar_Transient, option, widget)) {
+            return proxy()->pixelMetric(PM_ScrollBarExtent, option, widget);
+        }
+        return ParentStyleClass::pixelMetric(metric, option, widget);
 
     // title bar
     case PM_TitleBarHeight:
@@ -922,6 +1090,23 @@ int Style::styleHint(StyleHint hint, const QStyleOption *option, const QWidget *
     case SH_TitleBar_NoBorder:
         return true;
     case SH_DockWidget_ButtonsHaveFrame:
+        return false;
+    case SH_ScrollBar_Transient:
+        if (_transientScrollBar) {
+            const QObject *object = widget;
+            if (!object && option) {
+                object = option->styleObject;
+            }
+            if (!object) {
+                return true;
+            }
+
+            if (object->parent() && strcmp(object->metaObject()->className(), "QScrollBar") == 0) {
+                if (auto scrollArea = qobject_cast<QAbstractScrollArea *>(object->parent()->parent())) {
+                    return scrollArea->testAttribute(Qt::WA_Hover);
+                }
+            }
+        }
         return false;
     default:
         return ParentStyleClass::styleHint(hint, option, widget, returnData);
@@ -1580,7 +1765,7 @@ bool Style::eventFilter(QObject *object, QEvent *event)
             // also catch if the alpha channel is set to 255
             if (widget->palette().color(QPalette::Window).alpha() <= 255) {
                 if ((qobject_cast<QToolBar *>(widget) || qobject_cast<QMenuBar *>(widget)) || _isBarsOpaque || _helper->titleBarColor(true).alphaF() < 1.0) {
-                    if (event->type() == QEvent::Move || event->type() == QEvent::Show || event->type() == QEvent::Hide) {
+                    if (event->type() == QEvent::Move || event->type() == QEvent::Show || event->type() == QEvent::Hide || event->type() == QEvent::Resize) {
                         if (_translucentWidgets.contains(widget->window()) && !_isKonsole) {
                             _blurHelper->forceUpdate(widget->window());
                         }
@@ -1710,16 +1895,33 @@ bool Style::eventFilterScrollArea(QWidget *widget, QEvent *event)
             children.append(child);
         }
 
-        if (children.empty())
-            break;
         if (!scrollArea->styleSheet().isEmpty())
+            break;
+
+        // Dolphin main view transparency
+        // Must be rendered even if children (scrollbars) are empty/hidden
+        if (_isDolphin && scrollArea->inherits("KItemListContainer")
+            && StyleConfigData::dolphinViewOpacity() < 100
+            && _translucentWidgets.contains(scrollArea->window())) {
+
+            QPainter painter(scrollArea);
+            painter.setClipRegion(static_cast<QPaintEvent *>(event)->region());
+
+            QRect rect = scrollArea->rect();
+            painter.setRenderHints(QPainter::Antialiasing, false);
+            _helper->renderTransparentArea(&painter, rect);
+
+            QColor backgroundColor = viewport->palette().color(viewport->backgroundRole());
+            backgroundColor.setAlphaF(StyleConfigData::dolphinViewOpacity() / 100.0);
+            painter.fillRect(rect, backgroundColor);
+            break;
+        }
+
+        if (children.empty())
             break;
 
         // make sure proper background is rendered behind the containers
         QPainter painter(scrollArea);
-        painter.setClipRegion(static_cast<QPaintEvent *>(event)->region());
-
-        painter.setPen(Qt::NoPen);
 
         // decide background color
         const QPalette::ColorRole role(viewport->backgroundRole());
@@ -1792,6 +1994,90 @@ bool Style::eventFilterScrollArea(QWidget *widget, QEvent *event)
 
         break;
     }
+    case QEvent::HoverEnter:
+    case QEvent::HoverMove:
+        if (!proxy()->styleHint(SH_ScrollBar_Transient)) {
+            break;
+        }
+
+        if (auto scrollArea = qobject_cast<QAbstractScrollArea *>(widget)) {
+            auto hoverEvent = static_cast<QHoverEvent *>(event);
+            #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            const auto pos = hoverEvent->position().toPoint();
+            #else
+            const auto pos = hoverEvent->pos();
+            #endif
+            bool needPreExpandScrollBar = true;
+            const auto widgetUnderCursor = scrollArea->childAt(pos);
+            // don't pre-expand scrollbar if widget under cursor is not scrollarea
+            // and does not inherit from ignored classes
+            if (widgetUnderCursor && widgetUnderCursor != scrollArea->viewport()) {
+                needPreExpandScrollBar = false;
+                // classes over which the scrollbar can be pre-expanded
+                const char *ignoredClassNames[] = {
+                    "DlgGeneral", // okular settings
+                    "QDialog",
+                    "QGroupBox",
+                    "QLabel",
+                };
+                for (const auto &className : ignoredClassNames) {
+                    if (widgetUnderCursor->inherits(className)) {
+                        needPreExpandScrollBar = true;
+                        break;
+                    }
+                }
+            }
+
+            bool verticalScrollBarNear = false;
+            if (scrollArea->verticalScrollBarPolicy() != Qt::ScrollBarAlwaysOff) {
+                auto scrollBar = scrollArea->verticalScrollBar();
+                if (scrollBar && proxy()->styleHint(SH_ScrollBar_Transient, nullptr, scrollBar)) {
+                    const auto rect = scrollBar->rect();
+                    QRect mappedRect(scrollBar->mapTo(scrollArea, rect.topLeft()), scrollBar->mapTo(scrollArea, rect.bottomRight()));
+                    if (QApplication::isLeftToRight()) {
+                        mappedRect.setLeft(mappedRect.right() - Metrics::ScrollBar_Extend);
+                    } else {
+                        mappedRect.setRight(mappedRect.left() + Metrics::ScrollBar_Extend);
+                    }
+                    verticalScrollBarNear = needPreExpandScrollBar && mappedRect.contains(pos);
+                    _animations->scrollBarEngine().setNeedPreExpand(scrollBar, verticalScrollBarNear);
+                    _animations->scrollBarEngine().transientUpdate(scrollBar);
+                }
+            }
+            if (scrollArea->horizontalScrollBarPolicy() != Qt::ScrollBarAlwaysOff) {
+                auto scrollBar = scrollArea->horizontalScrollBar();
+                if (scrollBar && proxy()->styleHint(SH_ScrollBar_Transient, nullptr, scrollBar)) {
+                    bool horizontalScrollBarNear = false;
+                    if (needPreExpandScrollBar && !verticalScrollBarNear) {
+                        const auto rect = scrollBar->rect();
+                        QRect mappedRect(scrollBar->mapTo(scrollArea, rect.topLeft()), scrollBar->mapTo(scrollArea, rect.bottomRight()));
+                        mappedRect.setTop(mappedRect.top() - Metrics::ScrollBar_Extend);
+                        horizontalScrollBarNear = mappedRect.contains(pos);
+                    }
+                    _animations->scrollBarEngine().setNeedPreExpand(scrollBar, horizontalScrollBarNear);
+                    _animations->scrollBarEngine().transientUpdate(scrollBar);
+                }
+            }
+        }
+        break;
+
+        case QEvent::Show:
+            if (auto scrollArea = qobject_cast<QAbstractScrollArea *>(widget)) {
+                if (scrollArea->horizontalScrollBarPolicy() != Qt::ScrollBarAlwaysOff) {
+                    auto scrollBar = scrollArea->horizontalScrollBar();
+                    if (scrollBar && proxy()->styleHint(SH_ScrollBar_Transient, nullptr, scrollBar)) {
+                        _animations->scrollBarEngine().transientUpdate(scrollBar);
+                    }
+                }
+                if (scrollArea->verticalScrollBarPolicy() != Qt::ScrollBarAlwaysOff) {
+                    auto scrollBar = scrollArea->verticalScrollBar();
+                    if (scrollBar && proxy()->styleHint(SH_ScrollBar_Transient, nullptr, scrollBar)) {
+                        _animations->scrollBarEngine().transientUpdate(scrollBar);
+                    }
+                }
+            }
+            break;
+
 
     default:
         break;
@@ -1812,6 +2098,9 @@ bool Style::eventFilterComboBoxContainer(QWidget *widget, QEvent *event)
         const auto &palette(widget->palette());
         const auto background(_helper->frameBackgroundColor(palette));
         const auto outline(_helper->frameOutlineColor(palette));
+        painter.setCompositionMode(QPainter::CompositionMode_Clear);
+        painter.fillRect(rect, Qt::transparent);
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
     
         const bool hasAlpha(_helper->hasAlphaChannel(widget));
         if (hasAlpha) {
@@ -1821,6 +2110,10 @@ bool Style::eventFilterComboBoxContainer(QWidget *widget, QEvent *event)
         } else {
             _helper->renderMenuFrame(&painter, rect, background, outline, false);
         }
+    }
+    // update blur region
+    if (event->type() == QEvent::Move || event->type() == QEvent::Show || event->type() == QEvent::Hide) {
+    _blurHelper->forceUpdate(widget->window());
     }
 
     return false;
@@ -2104,6 +2397,14 @@ QIcon Style::standardIconImplementation(StandardPixmap standardPixmap, const QSt
 //_____________________________________________________________________
 void Style::loadConfiguration()
 {
+    StyleConfigData::self()->load();
+
+    // Migration: convert deprecated TransparentDolphinView checkbox to DolphinViewOpacity slider
+    if (StyleConfigData::transparentDolphinView() && StyleConfigData::dolphinViewOpacity() == 100) {
+        StyleConfigData::setDolphinViewOpacity(0);
+        StyleConfigData::setTransparentDolphinView(false);
+    }
+
     // load helper configuration
     _helper->loadConfig();
 
@@ -2157,6 +2458,24 @@ void Style::loadConfiguration()
         _subLineButtons = DoubleButton;
         break;
     }
+
+    // scrollbar transient style
+    if (_transientScrollBar != StyleConfigData::scrollBarTransient()) {
+        _transientScrollBar = StyleConfigData::scrollBarTransient();
+        const auto widgets = QApplication::allWidgets();
+        for (auto widget : widgets) {
+            if (auto scrollArea = qobject_cast<QAbstractScrollArea *>(widget)) {
+                scrollArea->updateGeometry();
+                if (scrollArea->verticalScrollBar()) {
+                    scrollArea->verticalScrollBar()->updateGeometry();
+                }
+                if (scrollArea->horizontalScrollBar()) {
+                    scrollArea->horizontalScrollBar()->updateGeometry();
+                }
+            }
+        }
+    }
+    _transientScrollBarAlwaysShowSlim = StyleConfigData::scrollBarTransientAlwaysShowSlim();
 
     // frame focus
     if (StyleConfigData::viewDrawFocusIndicator())
@@ -2995,29 +3314,38 @@ QRect Style::spinBoxSubControlRect(const QStyleOptionComplex *option, SubControl
 //___________________________________________________________________________________________________________________
 QRect Style::scrollBarInternalSubControlRect(const QStyleOptionComplex *option, SubControl subControl) const
 {
-    const auto &rect = option->rect;
+    auto rect = option->rect;
     const State &state(option->state);
     const bool horizontal(state & State_Horizontal);
+    if (proxy()->styleHint(SH_ScrollBar_Transient, option, nullptr)) {
+        if (horizontal) {
+            rect.setWidth(rect.width() - Metrics::ScrollBar_TransientExtend);
+        } else {
+            rect.setHeight(rect.height() - Metrics::ScrollBar_TransientExtend);
+        }
+    }
 
     switch (subControl) {
-    case SC_ScrollBarSubLine: {
-        int majorSize(scrollBarButtonHeight(_subLineButtons));
-        if (horizontal)
-            return visualRect(option, QRect(rect.left(), rect.top(), majorSize, rect.height()));
-        else
-            return visualRect(option, QRect(rect.left(), rect.top(), rect.width(), majorSize));
-    }
+        case SC_ScrollBarSubLine: {
+            int majorSize(scrollBarButtonHeight(_subLineButtons));
+            if (horizontal) {
+                return visualRect(option, QRect(rect.left(), rect.top(), majorSize, rect.height()));
+            } else {
+                return visualRect(option, QRect(rect.left(), rect.top(), rect.width(), majorSize));
+            }
+        }
 
-    case SC_ScrollBarAddLine: {
-        int majorSize(scrollBarButtonHeight(_addLineButtons));
-        if (horizontal)
-            return visualRect(option, QRect(rect.right() - majorSize + 1, rect.top(), majorSize, rect.height()));
-        else
-            return visualRect(option, QRect(rect.left(), rect.bottom() - majorSize + 1, rect.width(), majorSize));
-    }
+        case SC_ScrollBarAddLine: {
+            int majorSize(scrollBarButtonHeight(_addLineButtons));
+            if (horizontal) {
+                return visualRect(option, QRect(rect.right() - majorSize + 1, rect.top(), majorSize, rect.height()));
+            } else {
+                return visualRect(option, QRect(rect.left(), rect.bottom() - majorSize + 1, rect.width(), majorSize));
+            }
+        }
 
-    default:
-        return QRect();
+        default:
+            return QRect();
     }
 }
 
@@ -3769,7 +4097,7 @@ bool Style::drawFramePrimitive(const QStyleOption *option, QPainter *painter, co
     // from kvantum
     if (_isDolphin) {
         if (QWidget *pw = widget->parentWidget()) {
-            if (StyleConfigData::transparentDolphinView()
+            if (StyleConfigData::dolphinViewOpacity() < 100
                 // not renaming area
                 && !qobject_cast<QAbstractScrollArea *>(pw)
                 // only Dolphin's view
@@ -4553,6 +4881,27 @@ bool Style::drawPanelItemViewItemPrimitive(const QStyleOption *option, QPainter 
         painter->setPen(Qt::NoPen);
         painter->drawRoundedRect(viewItemOption->rect, StyleConfigData::cornerRadius(), StyleConfigData::cornerRadius());
         return true;
+    }
+
+    // ignore render hovered item if its behind the transient scrollbar
+    if (_transientScrollBar && abstractItemView && mouseOver && !selected) {
+        const QPoint mousePos = QCursor::pos();
+        if (abstractItemView->horizontalScrollBarPolicy() != Qt::ScrollBarAlwaysOff) {
+            auto scrollBar = abstractItemView->horizontalScrollBar();
+            if (scrollBar && proxy()->styleHint(SH_ScrollBar_Transient, nullptr, scrollBar)) {
+                if (scrollBar->geometry().contains(scrollBar->mapFromGlobal(mousePos))) {
+                    return true;
+                }
+            }
+        }
+        if (abstractItemView->verticalScrollBarPolicy() != Qt::ScrollBarAlwaysOff) {
+            auto scrollBar = abstractItemView->verticalScrollBar();
+            if (scrollBar && proxy()->styleHint(SH_ScrollBar_Transient, nullptr, scrollBar)) {
+                if (scrollBar->geometry().contains(scrollBar->mapFromGlobal(mousePos))) {
+                    return true;
+                }
+            }
+        }
     }
 
     // render selection
@@ -6231,6 +6580,14 @@ bool Style::drawScrollBarSliderControl(const QStyleOption *option, QPainter *pai
     const QWidget *parent(scrollBarParent(widget));
     const bool hasFocus(enabled && ((widget && widget->hasFocus()) || (parent && parent->hasFocus())));
 
+    // define handle rect
+    QRectF handleRect;
+    const qreal sliderWidth = static_cast<qreal>(Metrics::ScrollBar_SliderWidth) / (2 - grooveAnimationOpacity);
+    if (horizontal)
+        handleRect = centerRectF(rect, rect.width(), sliderWidth);
+    else
+        handleRect = centerRectF(rect, sliderWidth, rect.height());
+
     // enable animation state
     const bool handleActive(sliderOption->activeSubControls & SC_ScrollBarSlider);
     _animations->scrollBarEngine().updateState(widget, AnimationFocus, hasFocus);
@@ -6240,19 +6597,40 @@ bool Style::drawScrollBarSliderControl(const QStyleOption *option, QPainter *pai
     const auto mode(_animations->scrollBarEngine().animationMode(widget, SC_ScrollBarSlider));
     const qreal opacity(_animations->scrollBarEngine().opacity(widget, SC_ScrollBarSlider));
     auto color = _helper->scrollBarHandleColor(palette, mouseOver, hasFocus, opacity, mode);
-    if (StyleConfigData::animationsEnabled()) {
+    auto backgroundColor = palette.color(QPalette::Window);
+    if (proxy()->styleHint(SH_ScrollBar_Transient, option, widget)) {
+        const auto opacity = scrollBarTransientAnimationOpacity(option, widget);
+        if (qFuzzyIsNull(opacity)) {
+            return true;
+        }
+        color.setAlphaF(opacity * (0.7 + 0.3 * grooveAnimationOpacity));
+        const bool slimSlider = _transientScrollBarAlwaysShowSlim || qFuzzyIsNull(grooveAnimationOpacity);
+        if (slimSlider) {
+            color.setAlphaF(color.alphaF() * 0.7);
+            backgroundColor = QColor();
+        }
+
+        int sliderOffset = slimSlider ? 9 : 10 - 3 * grooveAnimationOpacity;
+        // if has addLinesButtons than align slider center by arrow center
+        if (_addLineButtons != NoButton && !slimSlider) {
+            sliderOffset = (Metrics::ScrollBar_Extend / 2 - Metrics::ArrowSize / 2) * grooveAnimationOpacity;
+        }
+
+        int sliderWidth = Metrics::ScrollBar_TransientSliderWidth;
+        if (!slimSlider) {
+            sliderWidth = horizontal ? handleRect.height() : handleRect.width();
+            sliderWidth = qMax(static_cast<int>(sliderWidth * grooveAnimationOpacity), static_cast<int>(Metrics::ScrollBar_TransientSliderWidth));
+        }
+        if (horizontal) {
+            handleRect = QRect(rect.left(), rect.bottom() - sliderWidth - sliderOffset, rect.width(), sliderWidth);
+        } else {
+            handleRect = QRect(rect.right() - sliderWidth - sliderOffset, rect.top(), sliderWidth, rect.height());
+        }
+    } else if (StyleConfigData::animationsEnabled()) {
         color.setAlphaF(color.alphaF() * (0.7 + 0.3 * grooveAnimationOpacity));
     }
 
-    // define handle rect
-    QRectF handleRect;
-    const qreal sliderWidth = static_cast<qreal>(Metrics::ScrollBar_SliderWidth) / (2 - grooveAnimationOpacity);
-    if (horizontal)
-        handleRect = centerRectF(rect, rect.width(), sliderWidth);
-    else
-        handleRect = centerRectF(rect, sliderWidth, rect.height());
-
-    _helper->renderScrollBarHandle(painter, handleRect, color);
+    _helper->renderScrollBarHandle(painter, handleRect, color, backgroundColor);
     return true;
 }
 
@@ -6273,7 +6651,7 @@ bool Style::drawScrollBarAddLineControl(const QStyleOption *option, QPainter *pa
     const bool reverseLayout(option->direction == Qt::RightToLeft);
 
     // adjust rect, based on number of buttons to be drawn
-    auto rect(scrollBarInternalSubControlRect(sliderOption, SC_ScrollBarAddLine));
+    auto rect = option->rect;
 
     // need to make it center due to the thin line separator
     if (option->state & State_Horizontal) {
@@ -6285,6 +6663,13 @@ bool Style::drawScrollBarAddLineControl(const QStyleOption *option, QPainter *pa
     }
 
     QColor color;
+    qreal colorAlpha = 1.;
+    if (proxy()->styleHint(SH_ScrollBar_Transient, option, widget)) {
+        colorAlpha = scrollBarTransientAnimationOpacity(option, widget);
+        if (qFuzzyIsNull(colorAlpha)) {
+            return true;
+        }
+    }
     QStyleOptionSlider copy(*sliderOption);
     if (_addLineButtons == DoubleButton) {
         if (horizontal) {
@@ -6295,10 +6680,12 @@ bool Style::drawScrollBarAddLineControl(const QStyleOption *option, QPainter *pa
 
             copy.rect = leftSubButton;
             color = scrollBarArrowColor(&copy, reverseLayout ? SC_ScrollBarAddLine : SC_ScrollBarSubLine, widget);
+            color.setAlphaF(colorAlpha);
             _helper->renderArrow(painter, leftSubButton, color, ArrowLeft);
 
             copy.rect = rightSubButton;
             color = scrollBarArrowColor(&copy, reverseLayout ? SC_ScrollBarSubLine : SC_ScrollBarAddLine, widget);
+            color.setAlphaF(colorAlpha);
             _helper->renderArrow(painter, rightSubButton, color, ArrowRight);
 
         } else {
@@ -6308,16 +6695,19 @@ bool Style::drawScrollBarAddLineControl(const QStyleOption *option, QPainter *pa
 
             copy.rect = topSubButton;
             color = scrollBarArrowColor(&copy, SC_ScrollBarSubLine, widget);
+            color.setAlphaF(colorAlpha);
             _helper->renderArrow(painter, topSubButton, color, ArrowUp);
 
             copy.rect = botSubButton;
             color = scrollBarArrowColor(&copy, SC_ScrollBarAddLine, widget);
+            color.setAlphaF(colorAlpha);
             _helper->renderArrow(painter, botSubButton, color, ArrowDown);
         }
 
     } else if (_addLineButtons == SingleButton) {
         copy.rect = rect;
         color = scrollBarArrowColor(&copy, SC_ScrollBarAddLine, widget);
+        color.setAlphaF(colorAlpha);
         if (horizontal) {
             if (reverseLayout)
                 _helper->renderArrow(painter, rect, color, ArrowLeft);
@@ -6348,7 +6738,7 @@ bool Style::drawScrollBarSubLineControl(const QStyleOption *option, QPainter *pa
     const bool reverseLayout(option->direction == Qt::RightToLeft);
 
     // adjust rect, based on number of buttons to be drawn
-    auto rect(scrollBarInternalSubControlRect(sliderOption, SC_ScrollBarSubLine));
+    auto rect = option->rect;
 
     // need to make it center due to the thin line separator
     if (option->state & State_Horizontal) {
@@ -6360,6 +6750,13 @@ bool Style::drawScrollBarSubLineControl(const QStyleOption *option, QPainter *pa
     }
 
     QColor color;
+    qreal colorAlpha = 1.;
+    if (proxy()->styleHint(SH_ScrollBar_Transient, option, widget)) {
+        colorAlpha = scrollBarTransientAnimationOpacity(option, widget);
+        if (qFuzzyIsNull(colorAlpha)) {
+            return true;
+        }
+    }
     QStyleOptionSlider copy(*sliderOption);
     if (_subLineButtons == DoubleButton) {
         if (horizontal) {
@@ -6370,10 +6767,12 @@ bool Style::drawScrollBarSubLineControl(const QStyleOption *option, QPainter *pa
 
             copy.rect = leftSubButton;
             color = scrollBarArrowColor(&copy, reverseLayout ? SC_ScrollBarAddLine : SC_ScrollBarSubLine, widget);
+            color.setAlphaF(colorAlpha);
             _helper->renderArrow(painter, leftSubButton, color, ArrowLeft);
 
             copy.rect = rightSubButton;
             color = scrollBarArrowColor(&copy, reverseLayout ? SC_ScrollBarSubLine : SC_ScrollBarAddLine, widget);
+            color.setAlphaF(colorAlpha);
             _helper->renderArrow(painter, rightSubButton, color, ArrowRight);
 
         } else {
@@ -6383,16 +6782,19 @@ bool Style::drawScrollBarSubLineControl(const QStyleOption *option, QPainter *pa
 
             copy.rect = topSubButton;
             color = scrollBarArrowColor(&copy, SC_ScrollBarSubLine, widget);
+            color.setAlphaF(colorAlpha);
             _helper->renderArrow(painter, topSubButton, color, ArrowUp);
 
             copy.rect = botSubButton;
             color = scrollBarArrowColor(&copy, SC_ScrollBarAddLine, widget);
+            color.setAlphaF(colorAlpha);
             _helper->renderArrow(painter, botSubButton, color, ArrowDown);
         }
 
     } else if (_subLineButtons == SingleButton) {
         copy.rect = rect;
         color = scrollBarArrowColor(&copy, SC_ScrollBarSubLine, widget);
+        color.setAlphaF(colorAlpha);
         if (horizontal) {
             if (reverseLayout)
                 _helper->renderArrow(painter, rect.translated(1, 0), color, ArrowRight);
@@ -7950,6 +8352,34 @@ bool Style::drawScrollBarComplexControl(const QStyleOptionComplex *option, QPain
     if (opacity == AnimationData::OpacityInvalid)
         opacity = 1;
 
+    if (proxy()->styleHint(SH_ScrollBar_Transient, option, widget)) {
+        // if not mouse over than draw only slider
+        if (!(option->state & State_MouseOver)) {
+            if (const auto *scrollbar = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
+                QStyleOptionSlider newScrollbar = *scrollbar;
+                newScrollbar.rect = scrollbar->rect;
+                newScrollbar.state = scrollbar->state;
+                newScrollbar.rect = proxy()->subControlRect(CC_ScrollBar, &newScrollbar, SC_ScrollBarSlider, widget);
+                if (newScrollbar.rect.isValid()) {
+                    if (!(scrollbar->activeSubControls & SC_ScrollBarSlider)) {
+                        newScrollbar.state &= ~(State_Sunken | State_MouseOver);
+                    }
+                    proxy()->drawControl(CE_ScrollBarSlider, &newScrollbar, painter, widget);
+
+                    if (scrollbar->state & State_HasFocus) {
+                        QStyleOptionFocusRect fropt;
+                        fropt.QStyleOption::operator=(newScrollbar);
+                        fropt.rect.setRect(newScrollbar.rect.x() + 2, newScrollbar.rect.y() + 2, newScrollbar.rect.width() - 5, newScrollbar.rect.height() - 5);
+                        proxy()->drawPrimitive(PE_FrameFocusRect, &fropt, painter, widget);
+                    }
+                }
+            }
+        } else {
+            ParentStyleClass::drawComplexControl(CC_ScrollBar, option, painter, widget);
+        }
+        return true;
+    }
+
     QRect separatorRect;
     if (option->state & State_Horizontal) {
         separatorRect = QRect(0, 0, option->rect.width(), 1);
@@ -8880,5 +9310,23 @@ QWidget *Style::getParent(const QWidget *widget, int level) const
     for (int i = 1; i < level && w; ++i)
         w = w->parentWidget();
     return w;
+}
+//____________________________________________________________________________
+qreal Style::scrollBarTransientAnimationOpacity(const QStyleOption *option, const QWidget *widget) const
+{
+    if (!option) {
+        return 0.;
+    }
+
+    const auto *object = widget ? widget : option->styleObject;
+    qreal stateOnOpacity = _animations->scrollBarEngine().transientOpacity(object);
+    if (stateOnOpacity == AnimationData::OpacityInvalid) {
+        stateOnOpacity = 0.;
+    }
+    if (!StyleConfigData::animationsEnabled() && !qFuzzyIsNull(stateOnOpacity)) {
+        stateOnOpacity = 1.;
+    }
+
+    return stateOnOpacity;
 }
 } // namespace

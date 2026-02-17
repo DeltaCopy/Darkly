@@ -1,21 +1,17 @@
 
-# About this fork
+# Darkly
 
-This fork attempts to revive lightly with a different approach from boehs, with the assumption that Luwx won't ever resume his project.
-
-This means that this fork allows real changes, and not just maintainence.
+Forked from the lightly theme, this style brings a fresh and unique look to your applications
 
 ![Darkly](https://github.com/user-attachments/assets/624352f7-ac29-46e4-b2e8-bb7df3ecb7ed)
 
-## What changed?
+### What to expect?
 
-- [x] Redesign the tabbar
-- [x] Make the buttons sligthly larger
-- [x] Change the defaults to fit the normal use-cases better
-- [x] Add my own colorscheme to it
-- [x] Make installation in all major distros easy
-- [x] Rename the project to something like „Darkly”
-- [x] Maintain the project
+The main goal is to provide a style for **Qt applications**.
+
+Other than that we maintain a style for **Plasma window decorations** and a **color scheme**.
+
+Most changes are optional, if you don't like them, you can turn them off in the settings.
 
 ## Installation
 
@@ -312,10 +308,15 @@ doas apk del build-deps
 ---
 
 ### Transparency
-> [!NOTE]
-> Changing the opacity levels of the menu, sidebar, menubar, toolbar or the tabbar has a prerequisite to have blur activated.
+Plasma by default uses the qqc2-desktop-style, that means Qt Quick applications will mostly look like Qt applications.
+However we don't really have control over how those applications look.
+This also means that if you want to use transparency, you'll need something that can blur things that don't support it by default.
+I recommend checking out [kwin-effects-better-blur-dx](https://github.com/xarblu/kwin-effects-better-blur-dx) or [kwin-effects-glass](https://github.com/4v3ngR/kwin-effects-glass) to get around this issue
 
-This can be verified in Plasma by going to System Settings > Windows Management > Desktop Effects > Blur
+> [!NOTE]
+> These effects conflict with the stock blur effect and other effects replacing it.
+
+***
 
 ### Older plasma versions
 

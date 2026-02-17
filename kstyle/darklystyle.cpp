@@ -454,7 +454,7 @@ void Style::polish(QWidget *widget)
         }
 
         /* take all precautions */
-        if (!_subApp && !_isLibreoffice && widget->isWindow() && widget->windowType() != Qt::Desktop && !widget->testAttribute(Qt::WA_PaintOnScreen)
+        if (!_subApp && !_isLibreoffice && widget->isWindow() && /* widget->windowType() != Qt::Desktop && */ !widget->testAttribute(Qt::WA_PaintOnScreen)
             && !widget->testAttribute(Qt::WA_X11NetWmWindowTypeDesktop) && !widget->inherits("KScreenSaver") && !widget->inherits("QSplashScreen")) {
             // if( _isPlasma && !qobject_cast<QDialog*>(widget) ) break;
             if (!_helper->compositingActive())
@@ -9080,7 +9080,7 @@ void Style::setSurfaceFormat(QWidget *widget) const
         if (widget->windowHandle() // too late
             || widget->windowFlags().testFlag(Qt::FramelessWindowHint) || widget->windowFlags().testFlag(Qt::X11BypassWindowManagerHint)
             || qobject_cast<QFrame *>(widget) // a floating frame, as in Filelight
-            || widget->windowType() == Qt::Desktop || widget->testAttribute(Qt::WA_PaintOnScreen) || widget->testAttribute(Qt::WA_X11NetWmWindowTypeDesktop)
+            || /* widget->windowType() == Qt::Desktop || */ widget->testAttribute(Qt::WA_PaintOnScreen) || widget->testAttribute(Qt::WA_X11NetWmWindowTypeDesktop)
             || widget->inherits("KScreenSaver") || widget->inherits("QSplashScreen"))
             return;
 

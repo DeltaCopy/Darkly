@@ -160,8 +160,15 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
         return roundedRegion(rect, StyleConfigData::cornerRadius() + 1, true, true, true, true);
     } else {
         // blur entire window
-        if (widget->palette().color(QPalette::Window).alpha() < 255)
+        if (widget->palette().color(QPalette::Window).alpha() < 255){
+            QWidget *window = widget->window();
+            if (window->isFullScreen() || window->isMaximized())
+            return roundedRegion(rect, StyleConfigData::cornerRadius(), false, false, false, false);
+            else if (StyleConfigData::floatingTitlebar())
+            return roundedRegion(rect, StyleConfigData::cornerRadius(), true, true, true, true);
+            else
             return roundedRegion(rect, StyleConfigData::cornerRadius(), false, false, true, true);
+        }
 
         // blur specific widgets
         QRegion region;

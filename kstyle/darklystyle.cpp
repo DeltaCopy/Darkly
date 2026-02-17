@@ -454,7 +454,7 @@ void Style::polish(QWidget *widget)
         }
 
         /* take all precautions */
-        if (!_subApp && !_isLibreoffice && widget->isWindow() && widget->windowType() != Qt::Desktop && !widget->testAttribute(Qt::WA_PaintOnScreen)
+        if (!_subApp && !_isLibreoffice && widget->isWindow() && /* widget->windowType() != Qt::Desktop && */ !widget->testAttribute(Qt::WA_PaintOnScreen)
             && !widget->testAttribute(Qt::WA_X11NetWmWindowTypeDesktop) && !widget->inherits("KScreenSaver") && !widget->inherits("QSplashScreen")) {
             // if( _isPlasma && !qobject_cast<QDialog*>(widget) ) break;
             if (!_helper->compositingActive())
@@ -4397,60 +4397,14 @@ bool Style::drawFrameTabWidgetPrimitive(const QStyleOption *option, QPainter *pa
 //___________________________________________________________________________________
 bool Style::drawFrameTabBarBasePrimitive(const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
-    // tabbar frame used either for 'separate' tabbar, or in 'document mode'
+        const auto *tabOption = qstyleoption_cast<const QStyleOptionTabBarBase *>(option);
+        if (!tabOption)
+            return true;
 
-    // this is the empty part of the tab area
-
-    // cast option and check
-    const auto tabOption(qstyleoption_cast<const QStyleOptionTabBarBase *>(option));
-    // get rect, orientation, palette
-    const auto rect(option->rect);
-
-    if (!tabOption)
-        return true;
-
-    // setup painter
-    painter->setRenderHint(QPainter::Antialiasing, false);
-
-    // precaution don't change the alpha channel if the tabbar opacity is at 100
-    if ((_isDolphin || _isKonsole) && (StyleConfigData::tabBarOpacity() < 100) && !_isOpaque) {
         QColor backgroundColor = _helper->transparentBarBgColor(widget->palette().color(QPalette::Window), painter, widget->rect(), BarType::TabBar);
-        painter->setBrush(backgroundColor);
-        painter->fillRect(rect, backgroundColor);
-    } else {
-        const auto outline(QColor(0, 0, 0, 1));
+        painter->fillRect(widget->rect(), backgroundColor);
 
-        painter->setBrush(Qt::NoBrush);
-        painter->setPen(QPen(outline, 1));
-
-        // render
-        switch (tabOption->shape) {
-        case QTabBar::RoundedNorth:
-        case QTabBar::TriangularNorth:
-            painter->drawLine(rect.bottomLeft() - QPoint(1, 0), rect.bottomRight() + QPoint(1, 0));
-            break;
-
-        case QTabBar::RoundedSouth:
-        case QTabBar::TriangularSouth:
-            painter->drawLine(rect.topLeft() - QPoint(1, 0), rect.topRight() + QPoint(1, 0));
-            break;
-
-        case QTabBar::RoundedWest:
-        case QTabBar::TriangularWest:
-            painter->drawLine(rect.topRight() - QPoint(0, 1), rect.bottomRight() + QPoint(1, 0));
-            break;
-
-        case QTabBar::RoundedEast:
-        case QTabBar::TriangularEast:
-            painter->drawLine(rect.topLeft() - QPoint(0, 1), rect.bottomLeft() + QPoint(1, 0));
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    return true;
+        return true;
 }
 
 //___________________________________________________________________________________
@@ -7252,14 +7206,14 @@ bool Style::drawTabBarTabShapeControl(const QStyleOption *option, QPainter *pain
     // opacity only target dolphin and konsole
     // if ((_isDolphin || _isKonsole) && (StyleConfigData::tabBarOpacity() < 100) && (widget->parentWidget()->inherits("DolphinTabWidget") ||
     // widget->parentWidget()->inherits("Konsole::TabbedViewContainer"))) {
-    if ((_isDolphin || _isKonsole) && (StyleConfigData::tabBarOpacity() < 100) && !_isOpaque) {
-        // override the tab background color if adjustToDarkThemes is false
-        if (StyleConfigData::adjustToDarkThemes()) {
-            backgroundColor = _helper->transparentBarBgColor(backgroundColor, painter, rect, BarType::TabBar);
-        } else {
-            backgroundColor = _helper->transparentBarBgColor(_toolsAreaManager->palette().color(QPalette::Window), painter, rect, BarType::TabBar);
-        }
-    }
+    // if ((_isDolphin || _isKonsole) && (StyleConfigData::tabBarOpacity() < 100) && !_isOpaque) {
+    //     // override the tab background color if adjustToDarkThemes is false
+    //     if (StyleConfigData::adjustToDarkThemes()) {
+    //         backgroundColor = _helper->transparentBarBgColor(backgroundColor, painter, rect, BarType::TabBar);
+    //     } else {
+    //         backgroundColor = _helper->transparentBarBgColor(_toolsAreaManager->palette().color(QPalette::Window), painter, rect, BarType::TabBar);
+    //     }
+    // }
 
     // shadow size
     constexpr int shadowSize = 4;
@@ -9126,7 +9080,7 @@ void Style::setSurfaceFormat(QWidget *widget) const
         if (widget->windowHandle() // too late
             || widget->windowFlags().testFlag(Qt::FramelessWindowHint) || widget->windowFlags().testFlag(Qt::X11BypassWindowManagerHint)
             || qobject_cast<QFrame *>(widget) // a floating frame, as in Filelight
-            || widget->windowType() == Qt::Desktop || widget->testAttribute(Qt::WA_PaintOnScreen) || widget->testAttribute(Qt::WA_X11NetWmWindowTypeDesktop)
+            || /* widget->windowType() == Qt::Desktop || */ widget->testAttribute(Qt::WA_PaintOnScreen) || widget->testAttribute(Qt::WA_X11NetWmWindowTypeDesktop)
             || widget->inherits("KScreenSaver") || widget->inherits("QSplashScreen"))
             return;
 

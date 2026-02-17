@@ -272,6 +272,37 @@ bool Decoration::init()
 //________________________________________________________________
 void Decoration::updateBlur()
 {
+if (m_internalSettings->floatingTitlebar()){
+    auto c = window();
+    const QColor titleBarColor = c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
+
+    // set opaque to false when non-maximized, regardless of color (prevents kornerbug)
+    if (titleBarColor.alpha() == 255) {
+        this->setOpaque(c->isMaximized());
+    } else {
+        this->setOpaque(false);
+    }
+
+    // Recalculate window shapes
+    calculateWindowAndTitleBarShapes(true);
+
+    // Get window rectangle as integers
+    QRect windowRect(QPoint(0, 0), c->size().toSize());
+
+    // Height of the blur region
+    const int blurHeight = (buttonSize() + (Metrics::TitleBar_TopMargin * 2) + 8);
+
+    // Corner radius
+    const qreal blurRadius = c->isMaximized() ? 0.0 : m_scaledCornerRadius;
+
+    // Create a rounded rectangle path for the top strip
+    QPainterPath path;
+    path.addRoundedRect(QRectF(0, 0, windowRect.width(), blurHeight), blurRadius, blurRadius);
+
+    // Convert path to QRegion and set as blur region
+    QRegion blurRegion(path.toFillPolygon().toPolygon());
+    this->setBlurRegion(blurRegion);
+} else {
     auto c = window();
     const QColor titleBarColor = c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
 
@@ -285,10 +316,48 @@ void Decoration::updateBlur()
     calculateWindowAndTitleBarShapes(true);
     this->setBlurRegion(QRegion(m_windowPath->toFillPolygon().toPolygon()));
 }
+}
 
 //________________________________________________________________
 void Decoration::calculateWindowAndTitleBarShapes(const bool windowShapeOnly)
 {
+if (m_internalSettings->floatingTitlebar()){
+    auto c = window();
+    auto s = settings();
+
+    const qreal shrinkAmount = !isMaximized() ? 4 : 0; // shrink decoration height by 5px
+
+    // --- Title Bar ---
+    if (!windowShapeOnly || c->isShaded()) {
+        int titleHeight = std::max(int(borderTop() - shrinkAmount), 0);
+        m_titleRect = QRect(QPoint(0, 0), QSize(size().width(), titleHeight));
+
+        // Clear previous path
+        m_titleBarPath->clear();
+
+        if (isMaximized() || !s->isAlphaChannelSupported()) {
+            m_titleBarPath->addRect(m_titleRect);
+        } else {
+            m_titleBarPath->addRoundedRect(m_titleRect, m_scaledCornerRadius, m_scaledCornerRadius);
+        }
+    }
+
+    // --- Window Shape ---
+    m_windowPath->clear();
+
+    if (!c->isShaded()) {
+        QRect adjustedRect = rect().toRect();
+        adjustedRect.setHeight(std::max(adjustedRect.height() - int(shrinkAmount), 0));
+
+        if (s->isAlphaChannelSupported() && !isMaximized()) {
+            m_windowPath->addRoundedRect(adjustedRect, m_scaledCornerRadius, m_scaledCornerRadius);
+        } else {
+            m_windowPath->addRect(adjustedRect);
+        }
+    } else {
+        *m_windowPath = *m_titleBarPath;
+    }
+} else {
     auto c = window();
     auto s = settings();
 
@@ -329,6 +398,7 @@ void Decoration::calculateWindowAndTitleBarShapes(const bool windowShapeOnly)
     } else {
         *m_windowPath = *m_titleBarPath;
     }
+}
 }
 
 //________________________________________________________________
@@ -450,6 +520,72 @@ void Decoration::reconfigure()
 //________________________________________________________________
 void Decoration::recalculateBorders()
 {
+if (m_internalSettings->floatingTitlebar()){
+    const qreal scale = window()->nextScale();
+    setBorders(bordersFor(scale));
+
+    const qreal extSize = KDecoration3::snapToPixelGrid(settings()->largeSpacing(), scale);
+    qreal extSides = 0;
+    qreal extBottom = 0;
+
+    if (hasNoBorders()) {
+        if (!isMaximizedHorizontally()) extSides = extSize;
+        if (!isMaximizedVertically())   extBottom = extSize;
+    } else if (hasNoSideBorders() && !isMaximizedHorizontally()) {
+        extSides = extSize;
+    }
+
+    setResizeOnlyBorders(QMarginsF(extSides, 0, extSides, extBottom));
+
+    qreal topLeftRadius = 0;
+    qreal topRightRadius = 0;
+    qreal bottomLeftRadius = 0;
+    qreal bottomRightRadius = 0;
+
+    if (m_internalSettings->roundedCorners()) {
+        // Top corners
+        if (!isTopEdge()) {
+            topLeftRadius = m_scaledCornerRadius;
+            topRightRadius = m_scaledCornerRadius;
+        }
+        // Bottom corners
+        if (!isBottomEdge()) {
+            bottomLeftRadius = m_scaledCornerRadius;
+            bottomRightRadius = m_scaledCornerRadius;
+        }
+    }
+
+    setBorderRadius(KDecoration3::BorderRadius(topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius));
+
+    if (isMaximized() || !outlinesEnabled()) {
+        setBorderOutline(KDecoration3::BorderOutline()); // no outline
+    } else {
+        #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        const auto color = KColorUtils::mix(
+            window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive,
+                            ColorRole::Frame),
+                            window()->palette().text().color(),
+                                            KColorScheme::frameContrast()
+        );
+        #else
+        const auto color = KColorUtils::mix(
+            window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive,
+                            ColorRole::Frame),
+                            window()->palette().text().color(),
+                                            0.2
+        );
+        #endif
+
+        const qreal thickness = std::max(KDecoration3::pixelSize(window()->scale()),
+                                         KDecoration3::snapToPixelGrid(1, window()->scale()));
+
+        const KDecoration3::BorderRadius outlineRadius(
+            topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius
+        );
+
+        setBorderOutline(KDecoration3::BorderOutline(thickness, color, outlineRadius));
+    }
+} else {
     setBorders(bordersFor(window()->nextScale()));
 
     // extended sizes
@@ -487,15 +623,15 @@ void Decoration::recalculateBorders()
     if (isMaximized() || !outlinesEnabled()) {
         setBorderOutline(KDecoration3::BorderOutline());
     } else {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         const auto color = KColorUtils::mix(window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Frame),
                                             window()->palette().text().color(),
                                             KColorScheme::frameContrast());
-#else
+        #else
         const auto color = KColorUtils::mix(window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Frame),
                                             window()->palette().text().color(),
                                             0.2);
-#endif
+        #endif
         const qreal thickness = std::max(KDecoration3::pixelSize(window()->scale()), KDecoration3::snapToPixelGrid(1, window()->scale()));
 
         qreal bottomLeftRadius = 0;
@@ -509,6 +645,8 @@ void Decoration::recalculateBorders()
         setBorderOutline(KDecoration3::BorderOutline(thickness, color, radius));
     }
 }
+}
+
 
 //________________________________________________________________
 void Decoration::createButtons()
@@ -527,6 +665,82 @@ void Decoration::updateButtonsGeometryDelayed()
 //________________________________________________________________
 void Decoration::updateButtonsGeometry()
 {
+if (m_internalSettings->floatingTitlebar()){
+    const auto s = settings();
+
+    // adjust button position
+    const auto buttonList = m_leftButtons->buttons() + m_rightButtons->buttons();
+    for (KDecoration3::DecorationButton *button : buttonList) {
+        auto btn = static_cast<Button *>(button);
+
+        // vertical offset reduced to move buttons up
+        const int verticalOffset = (isTopEdge() ? s->smallSpacing() * Metrics::TitleBar_TopMargin : 0) + 1;
+
+        const QSizeF preferredSize = btn->preferredSize();
+        const int bHeight = preferredSize.height() + verticalOffset;
+        const int bWidth = preferredSize.width();
+
+        btn->setGeometry(QRectF(QPoint(0, 0), QSizeF(bWidth, bHeight)));
+        btn->setPadding(QMargins(0, verticalOffset, 0, 0));
+        btn->setOffset(QPointF(0, verticalOffset));
+        btn->setIconSize(QSizeF(bHeight, bWidth));
+    }
+
+    // left buttons
+    if (!m_leftButtons->buttons().isEmpty()) {
+        // spacing
+        m_leftButtons->setSpacing(s->smallSpacing() * Metrics::TitleBar_ButtonSpacing);
+
+        // padding
+        const int vPadding = (isTopEdge() ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin) + 1;
+        const int hPadding = s->smallSpacing() * Metrics::TitleBar_SideMargin;
+
+        if (isLeftEdge()) {
+            // add offsets on the side buttons, to preserve padding, but satisfy Fitts law
+            auto button = static_cast<Button *>(m_leftButtons->buttons().front());
+
+            QRectF geometry = button->geometry();
+            geometry.adjust(-hPadding, 0, 0, 0);
+            button->setGeometry(geometry);
+            button->setFlag(Button::FlagFirstInList);
+            button->setLeftPadding(hPadding);
+            button->setIconSize(button->preferredSize());
+
+            m_leftButtons->setPos(QPointF(0, vPadding));
+
+        } else {
+            m_leftButtons->setPos(QPointF(hPadding + borderLeft(), vPadding));
+        }
+    }
+
+    // right buttons
+    if (!m_rightButtons->buttons().isEmpty()) {
+        // spacing
+        m_rightButtons->setSpacing(s->smallSpacing() * Metrics::TitleBar_ButtonSpacing);
+
+        // padding
+        const int vPadding = (isTopEdge() ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin) + 1;
+        const int hPadding = s->smallSpacing() * Metrics::TitleBar_SideMargin;
+
+        if (isRightEdge()) {
+            auto button = static_cast<Button *>(m_rightButtons->buttons().back());
+
+            QRectF geometry = button->geometry();
+            geometry.adjust(0, 0, hPadding, 0);
+            button->setGeometry(geometry);
+            button->setFlag(Button::FlagFirstInList);
+            button->setRightPadding(hPadding);
+            button->setIconSize(button->preferredSize());
+
+            m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width(), vPadding));
+
+        } else {
+            m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width() - hPadding - borderRight(), vPadding));
+        }
+    }
+
+    update();
+} else {
     const auto s = settings();
 
     // adjust button position
@@ -598,6 +812,7 @@ void Decoration::updateButtonsGeometry()
     }
 
     update();
+}
 }
 
 //________________________________________________________________
@@ -671,7 +886,6 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
     }
 
     auto s = settings();
-
     painter->drawPath(*m_titleBarPath);
 
     // top highlight
@@ -697,7 +911,7 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
 
             p.setBrush(Qt::black);
             p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-            p.drawRoundedRect(copy.adjusted(0, 1, 0, 0), m_scaledCornerRadius, m_scaledCornerRadius);
+            p.drawRoundedRect(copy.adjusted(0, 1, 0, 3), m_scaledCornerRadius, m_scaledCornerRadius);
 
             painter->drawPixmap(copy, pix);
         }
@@ -713,7 +927,26 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
     }
 
     painter->restore();
+if (m_internalSettings->floatingTitlebar()){
 
+    // draw caption
+    painter->setFont(s->font());
+    painter->setPen(fontColor());
+    const auto cR = captionRect();
+
+    // Move caption up by 2 pixels
+    QRectF captionRectMoved = cR.first;
+    if (!isMaximized())
+    captionRectMoved.translate(0, -2.0); // floating-point translation
+    const QString caption = painter->fontMetrics().elidedText(
+        c->caption(), Qt::ElideMiddle, int(captionRectMoved.width())
+    );
+    painter->drawText(captionRectMoved, cR.second | Qt::TextSingleLine, caption);
+
+    // draw all buttons
+    m_leftButtons->paint(painter, repaintRegion);
+    m_rightButtons->paint(painter, repaintRegion);
+} else {
     // draw caption
     painter->setFont(s->font());
     painter->setPen(fontColor());
@@ -724,6 +957,7 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
     // draw all buttons
     m_leftButtons->paint(painter, repaintRegion);
     m_rightButtons->paint(painter, repaintRegion);
+}
 }
 
 //________________________________________________________________
@@ -854,13 +1088,21 @@ void Decoration::createShadow()
         painter.setPen(withOpacity(g_shadowColor, 0.4 * strength));
         painter.setBrush(Qt::NoBrush);
         painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+        if (m_internalSettings->floatingTitlebar()){
+        painter.drawRoundedRect(innerRect.adjusted(0, isMaximized() ? 0 : (buttonSize() + (Metrics::TitleBar_TopMargin * 2) + 13), 0, 0), m_scaledCornerRadius - 0.5, m_scaledCornerRadius - 0.5);
+        } else {
         painter.drawRoundedRect(innerRect, m_scaledCornerRadius - 0.5, m_scaledCornerRadius - 0.5);
+        }
 
         // Mask out inner rect.
         painter.setPen(Qt::NoPen);
         painter.setBrush(Qt::black);
         painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
+        if (m_internalSettings->floatingTitlebar()){
+        painter.drawRoundedRect(innerRect.adjusted(0, isMaximized() ? 0 : (buttonSize() + (Metrics::TitleBar_TopMargin * 2) + 13), 0, 0), m_scaledCornerRadius + 0.5, m_scaledCornerRadius + 0.5);
+        } else {
         painter.drawRoundedRect(innerRect, m_scaledCornerRadius + 0.5, m_scaledCornerRadius + 0.5);
+        }
 
         painter.end();
 
@@ -888,8 +1130,14 @@ QMarginsF Decoration::bordersFor(qreal scale) const
 
         // padding below
         const int baseSize = settings()->smallSpacing();
+        if (m_internalSettings->floatingTitlebar()){
+        if (isMaximized())
+        top += KDecoration3::snapToPixelGrid((baseSize + 2) * Metrics::TitleBar_BottomMargin, scale);
+        else
+        top += KDecoration3::snapToPixelGrid((baseSize + 4.5) * Metrics::TitleBar_BottomMargin, scale);
+        } else {
         top += KDecoration3::snapToPixelGrid(baseSize * Metrics::TitleBar_BottomMargin, scale);
-
+        }
         // padding above
         top += KDecoration3::snapToPixelGrid(baseSize * Metrics::TitleBar_TopMargin, scale);
     }

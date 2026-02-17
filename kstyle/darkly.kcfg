@@ -15,6 +15,10 @@
       <max>255</max>
     </entry>
 
+    <entry name="FloatingTitlebar" type = "Bool">
+      <default>true</default>
+    </entry>
+
     <!-- scrollbar transient -->
     <entry name="ScrollBarTransient" type="Bool">
       <default>false</default>

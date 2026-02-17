@@ -270,12 +270,12 @@ bool Decoration::init()
 }
 
 //________________________________________________________________
-void Darkly::Decoration::updateBlur()
+void Decoration::updateBlur()
 {
     auto c = window();
     const QColor titleBarColor = c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
 
-    // --- Opaque logic ---
+    // set opaque to false when non-maximized, regardless of color (prevents kornerbug)
     if (titleBarColor.alpha() == 255) {
         this->setOpaque(c->isMaximized());
     } else {
@@ -288,10 +288,10 @@ void Darkly::Decoration::updateBlur()
     // Get window rectangle as integers
     QRect windowRect(QPoint(0, 0), c->size().toSize());
 
-    // Height of the top blur region
-    constexpr int blurHeight = 33;
+    // Height of the blur region
+    const int blurHeight = (buttonSize() + (Metrics::TitleBar_TopMargin * 2) + 8);
 
-    // Corner radius: 0 if maximized, otherwise normal scaled radius
+    // Corner radius
     const qreal blurRadius = c->isMaximized() ? 0.0 : m_scaledCornerRadius;
 
     // Create a rounded rectangle path for the top strip
@@ -302,8 +302,6 @@ void Darkly::Decoration::updateBlur()
     QRegion blurRegion(path.toFillPolygon().toPolygon());
     this->setBlurRegion(blurRegion);
 }
-
-
 
 //________________________________________________________________
 void Decoration::calculateWindowAndTitleBarShapes(const bool windowShapeOnly)
@@ -332,7 +330,7 @@ void Decoration::calculateWindowAndTitleBarShapes(const bool windowShapeOnly)
     m_windowPath->clear();
 
     if (!c->isShaded()) {
-        QRect adjustedRect = rect().toRect(); // convert QRectF → QRect
+        QRect adjustedRect = rect().toRect();
         adjustedRect.setHeight(std::max(adjustedRect.height() - int(shrinkAmount), 0));
 
         if (s->isAlphaChannelSupported() && !isMaximized()) {
@@ -341,12 +339,9 @@ void Decoration::calculateWindowAndTitleBarShapes(const bool windowShapeOnly)
             m_windowPath->addRect(adjustedRect);
         }
     } else {
-        // Shaded window: use title bar shape
         *m_windowPath = *m_titleBarPath;
     }
 }
-
-
 
 //________________________________________________________________
 void Decoration::updateTitleBar()
@@ -467,11 +462,9 @@ void Decoration::reconfigure()
 //________________________________________________________________
 void Decoration::recalculateBorders()
 {
-    // 1️⃣ Set base borders based on scale
     const qreal scale = window()->nextScale();
     setBorders(bordersFor(scale));
 
-    // 2️⃣ Compute extended "resize-only" borders
     const qreal extSize = KDecoration3::snapToPixelGrid(settings()->largeSpacing(), scale);
     qreal extSides = 0;
     qreal extBottom = 0;
@@ -485,7 +478,6 @@ void Decoration::recalculateBorders()
 
     setResizeOnlyBorders(QMarginsF(extSides, 0, extSides, extBottom));
 
-    // 3️⃣ Compute corner radii for all corners
     qreal topLeftRadius = 0;
     qreal topRightRadius = 0;
     qreal bottomLeftRadius = 0;
@@ -506,11 +498,9 @@ void Decoration::recalculateBorders()
 
     setBorderRadius(KDecoration3::BorderRadius(topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius));
 
-    // 4️⃣ Set border outline
     if (isMaximized() || !outlinesEnabled()) {
         setBorderOutline(KDecoration3::BorderOutline()); // no outline
     } else {
-        // Color blending based on Qt version
         #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         const auto color = KColorUtils::mix(
             window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive,
@@ -527,7 +517,6 @@ void Decoration::recalculateBorders()
         );
         #endif
 
-        // Thickness must be at least 1 pixel
         const qreal thickness = std::max(KDecoration3::pixelSize(window()->scale()),
                                          KDecoration3::snapToPixelGrid(1, window()->scale()));
 
@@ -564,7 +553,7 @@ void Decoration::updateButtonsGeometry()
     for (KDecoration3::DecorationButton *button : buttonList) {
         auto btn = static_cast<Button *>(button);
 
-        // vertical offset reduced by 3 pixels to move buttons up
+        // vertical offset reduced to move buttons up
         const int verticalOffset = (isTopEdge() ? s->smallSpacing() * Metrics::TitleBar_TopMargin : 0) + 1;
 
         const QSizeF preferredSize = btn->preferredSize();
@@ -579,13 +568,15 @@ void Decoration::updateButtonsGeometry()
 
     // left buttons
     if (!m_leftButtons->buttons().isEmpty()) {
+        // spacing
         m_leftButtons->setSpacing(s->smallSpacing() * Metrics::TitleBar_ButtonSpacing);
 
-        // vertical padding reduced by 3 pixels
+        // padding
         const int vPadding = (isTopEdge() ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin) + 1;
         const int hPadding = s->smallSpacing() * Metrics::TitleBar_SideMargin;
 
         if (isLeftEdge()) {
+            // add offsets on the side buttons, to preserve padding, but satisfy Fitts law
             auto button = static_cast<Button *>(m_leftButtons->buttons().front());
 
             QRectF geometry = button->geometry();
@@ -604,9 +595,10 @@ void Decoration::updateButtonsGeometry()
 
     // right buttons
     if (!m_rightButtons->buttons().isEmpty()) {
+        // spacing
         m_rightButtons->setSpacing(s->smallSpacing() * Metrics::TitleBar_ButtonSpacing);
 
-        // vertical padding reduced by 3 pixels
+        // padding
         const int vPadding = (isTopEdge() ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin) + 1;
         const int hPadding = s->smallSpacing() * Metrics::TitleBar_SideMargin;
 
@@ -674,7 +666,7 @@ void Decoration::paint(QPainter *painter, const QRectF &repaintRegion)
 }
 
 //________________________________________________________________
-void Darkly::Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
+void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
 {
     const auto c = window();
     QRectF rect(QPointF(0, 0), QSizeF(size().width(), borderTop()));
@@ -761,8 +753,6 @@ void Darkly::Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintR
     m_leftButtons->paint(painter, repaintRegion);
     m_rightButtons->paint(painter, repaintRegion);
 }
-
-
 
 //________________________________________________________________
 int Decoration::buttonSize() const
@@ -892,13 +882,13 @@ void Decoration::createShadow()
         painter.setPen(withOpacity(g_shadowColor, 0.4 * strength));
         painter.setBrush(Qt::NoBrush);
         painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-        painter.drawRoundedRect(innerRect.adjusted(0, isMaximized() ? 0 : 37, 0, 0), m_scaledCornerRadius - 0.5, m_scaledCornerRadius - 0.5);
+        painter.drawRoundedRect(innerRect.adjusted(0, isMaximized() ? 0 : (buttonSize() + (Metrics::TitleBar_TopMargin * 2) + 13), 0, 0), m_scaledCornerRadius - 0.5, m_scaledCornerRadius - 0.5);
 
         // Mask out inner rect.
         painter.setPen(Qt::NoPen);
         painter.setBrush(Qt::black);
         painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-        painter.drawRoundedRect(innerRect.adjusted(0, isMaximized() ? 0 : 37, 0, 0), m_scaledCornerRadius + 0.5, m_scaledCornerRadius + 0.5);
+        painter.drawRoundedRect(innerRect.adjusted(0, isMaximized() ? 0 : (buttonSize() + (Metrics::TitleBar_TopMargin * 2) + 13), 0, 0), m_scaledCornerRadius + 0.5, m_scaledCornerRadius + 0.5);
 
         painter.end();
 

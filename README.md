@@ -1,7 +1,7 @@
 
 # Darkly
 
-Forked from the lightly theme, this style brings a fresh and unique look to your applications
+Forked from the ***lightly*** theme, this style brings a fresh and unique look to your applications
 
 ![Darkly](https://github.com/user-attachments/assets/624352f7-ac29-46e4-b2e8-bb7df3ecb7ed)
 

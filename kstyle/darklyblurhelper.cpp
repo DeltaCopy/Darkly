@@ -164,8 +164,10 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
             QWidget *window = widget->window();
             if (window->isFullScreen() || window->isMaximized())
             return roundedRegion(rect, StyleConfigData::cornerRadius(), false, false, false, false);
-            else
+            else if (StyleConfigData::floatingTitlebar())
             return roundedRegion(rect, StyleConfigData::cornerRadius(), true, true, true, true);
+            else
+            return roundedRegion(rect, StyleConfigData::cornerRadius(), false, false, true, true);
         }
 
         // blur specific widgets

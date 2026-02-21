@@ -674,7 +674,7 @@ if (m_internalSettings->floatingTitlebar()){
         auto btn = static_cast<Button *>(button);
 
         // vertical offset reduced to move buttons up
-        const int verticalOffset = (isTopEdge() ? s->smallSpacing() * Metrics::TitleBar_TopMargin : 0) + 1;
+        const int verticalOffset = (isTopEdge() ? s->smallSpacing() * Metrics::TitleBar_TopMargin : 0) + (isMaximized() ? 0 : 1);
 
         const QSizeF preferredSize = btn->preferredSize();
         const int bHeight = preferredSize.height() + verticalOffset;
@@ -692,7 +692,7 @@ if (m_internalSettings->floatingTitlebar()){
         m_leftButtons->setSpacing(s->smallSpacing() * Metrics::TitleBar_ButtonSpacing);
 
         // padding
-        const int vPadding = (isTopEdge() ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin) + 1;
+        int vPadding = (isTopEdge() ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin) + (isMaximized() ? 0 : 1);
         const int hPadding = s->smallSpacing() * Metrics::TitleBar_SideMargin;
 
         if (isLeftEdge()) {
@@ -719,7 +719,7 @@ if (m_internalSettings->floatingTitlebar()){
         m_rightButtons->setSpacing(s->smallSpacing() * Metrics::TitleBar_ButtonSpacing);
 
         // padding
-        const int vPadding = (isTopEdge() ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin) + 1;
+        int vPadding = (isTopEdge() ? 0 : s->smallSpacing() * Metrics::TitleBar_TopMargin) + (isMaximized() ? 0 : 1);
         const int hPadding = s->smallSpacing() * Metrics::TitleBar_SideMargin;
 
         if (isRightEdge()) {

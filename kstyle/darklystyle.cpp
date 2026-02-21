@@ -4401,8 +4401,10 @@ bool Style::drawFrameTabBarBasePrimitive(const QStyleOption *option, QPainter *p
         if (!tabOption)
             return true;
 
+        if (_isDolphin || _isKonsole){
         QColor backgroundColor = _helper->transparentBarBgColor(widget->palette().color(QPalette::Window), painter, widget->rect(), BarType::TabBar);
         painter->fillRect(widget->rect(), backgroundColor);
+        }
 
         return true;
 }

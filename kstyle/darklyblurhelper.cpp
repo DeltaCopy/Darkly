@@ -34,6 +34,7 @@
 
 #include <KWindowEffects>
 
+#include <QAbstractScrollArea>
 #include <QComboBox>
 #include <QEvent>
 #include <QMainWindow>
@@ -159,8 +160,15 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
         return roundedRegion(rect, StyleConfigData::cornerRadius() + 1, true, true, true, true);
     } else {
         // blur entire window
-        if (widget->palette().color(QPalette::Window).alpha() < 255)
+        if (widget->palette().color(QPalette::Window).alpha() < 255){
+            QWidget *window = widget->window();
+            if (window->isFullScreen() || window->isMaximized())
+            return roundedRegion(rect, StyleConfigData::cornerRadius(), false, false, false, false);
+            else if (StyleConfigData::floatingTitlebar())
+            return roundedRegion(rect, StyleConfigData::cornerRadius(), true, true, true, true);
+            else
             return roundedRegion(rect, StyleConfigData::cornerRadius(), false, false, true, true);
+        }
 
         // blur specific widgets
         QRegion region;
@@ -278,6 +286,16 @@ QRegion BlurHelper::blurRegion(QWidget *widget) const
                 // moved to blurSettingsDialogRegion
             }
 
+            // Dolphin main view
+            if (StyleConfigData::dolphinViewOpacity() < 100) {
+                QList<QAbstractScrollArea *> itemContainers = widget->findChildren<QAbstractScrollArea *>();
+                for (QAbstractScrollArea *container : itemContainers) {
+                    if (container->inherits("KItemListContainer") && container->isVisible()) {
+                        region += QRect(container->mapTo(widget, QPoint(0, 0)), container->rect().size());
+                    }
+                }
+            }
+
             /*if( (widget->windowFlags() & Qt::WindowType_Mask) == Qt::Dialog )
             {
                 QList<QWidget *> dialogWidgets = widget->findChildren<QWidget *>( QString(), Qt::FindDirectChildrenOnly );
@@ -326,7 +344,7 @@ QRegion BlurHelper::blurTabWidgetRegion(QWidget *widget) const
                 // the width of the tabbar is always -1 smaller than the tabwidget width so increment it
                 QSize tbSize(tw->tabBar()->rect().size());
                 tbSize.rwidth() += 1;
-                region += roundedRegion(QRect(tw->pos(), tbSize), StyleConfigData::cornerRadius(), false, false, true, false);
+                region += roundedRegion(QRect(tw->pos(), tbSize), StyleConfigData::cornerRadius(), false, false, false, false);
             }
         }
     }

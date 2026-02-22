@@ -26,6 +26,8 @@
 #include "darklystyleversion.h"
 #include <QDBusConnection>
 #include <QDBusMessage>
+#include <QFontMetrics>
+#include <QLabel>
 #include <KLocalizedString>
 
 extern "C" {
@@ -71,6 +73,10 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_sidebarOpacity, SIGNAL(valueChanged(int)), _sidebarOpacitySpinBox, SLOT(setValue(int)));
     connect(_sidebarOpacitySpinBox, SIGNAL(valueChanged(int)), _sidebarOpacity, SLOT(setValue(int)));
 
+    connect(_viewOpacity, &QAbstractSlider::valueChanged, this, &StyleConfig::updateChanged);
+    connect(_viewOpacity, SIGNAL(valueChanged(int)), _viewOpacitySpinBox, SLOT(setValue(int)));
+    connect(_viewOpacitySpinBox, SIGNAL(valueChanged(int)), _viewOpacity, SLOT(setValue(int)));
+
     connect(_tabBarDrawCenteredTabs, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_menuBarOpacity, &QAbstractSlider::valueChanged, this, &StyleConfig::updateChanged);
     connect(_menuBarOpacity, SIGNAL(valueChanged(int)), _menuBarOpacitySpinBox, SLOT(setValue(int)));
@@ -99,7 +105,6 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_tabBGColor, &KColorButton::changed, this, &StyleConfig::updateChanged);
 
     connect(_tabBarAltStyle, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
-    connect(_transparentDolphinView, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_cornerRadius, SIGNAL(valueChanged(int)), SLOT(updateChanged()));
     connect(_tabUseHighlightColor, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_tabUseBrighterCloseIcon, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
@@ -112,6 +117,14 @@ StyleConfig::StyleConfig(QWidget *parent)
     connect(_fancyMargins, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_sunkenEffect, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
     connect(_useNewCheckBox, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_documentModeTabs, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_fullOutline, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+    connect(_scrollBarTransient, &QAbstractButton::toggled, this, [this](bool checked) {
+        _scrollBarTransientAlwaysShowSlim->setEnabled(checked);
+        StyleConfig::updateChanged();
+    });
+    connect(_scrollBarTransientAlwaysShowSlim, &QAbstractButton::toggled, this, &StyleConfig::updateChanged);
+
 }
 
 //__________________________________________________________________
@@ -136,6 +149,7 @@ void StyleConfig::save()
     StyleConfigData::setWindowDragMode(_windowDragMode->currentIndex());
     StyleConfigData::setMenuOpacity(_menuOpacity->value());
     StyleConfigData::setDolphinSidebarOpacity(_sidebarOpacity->value());
+    StyleConfigData::setDolphinViewOpacity(_viewOpacity->value());
     StyleConfigData::setMenuBarOpacity(_menuBarOpacity->value());
     StyleConfigData::setToolBarOpacity(_toolBarOpacity->value());
     StyleConfigData::setTabBarOpacity(_tabBarOpacity->value());
@@ -151,7 +165,6 @@ void StyleConfig::save()
     StyleConfigData::setAdjustToDarkThemes(_adjustToDarkThemes->isChecked());
     StyleConfigData::setTabBGColor(_tabBGColor->color());
     StyleConfigData::setTabBarAltStyle(_tabBarAltStyle->isChecked());
-    StyleConfigData::setTransparentDolphinView(_transparentDolphinView->isChecked());
     StyleConfigData::setCornerRadius(_cornerRadius->value());
     StyleConfigData::setTabUseHighlightColor(_tabUseHighlightColor->isChecked());
     StyleConfigData::setTabUseBrighterCloseIcon(_tabUseBrighterCloseIcon->isChecked());
@@ -163,6 +176,10 @@ void StyleConfig::save()
     StyleConfigData::setFancyMargins(_fancyMargins->isChecked());
     StyleConfigData::setSunkenEffect(_sunkenEffect->isChecked());
     StyleConfigData::setUseNewCheckBox(_useNewCheckBox->isChecked());
+    StyleConfigData::setDocumentModeTabs(_documentModeTabs->isChecked());
+    StyleConfigData::setFullOutline(_fullOutline->isChecked());
+    StyleConfigData::setScrollBarTransient(_scrollBarTransient->isChecked());
+    StyleConfigData::setScrollBarTransientAlwaysShowSlim(_scrollBarTransientAlwaysShowSlim->isChecked());
 
     StyleConfigData::self()->save();
 
@@ -236,6 +253,9 @@ void StyleConfig::updateChanged()
     } else if (_sidebarOpacity->value() != StyleConfigData::dolphinSidebarOpacity()) {
         modified = true;
         _sidebarOpacitySpinBox->setValue(_sidebarOpacity->value());
+    } else if (_viewOpacity->value() != StyleConfigData::dolphinViewOpacity()) {
+        modified = true;
+        _viewOpacitySpinBox->setValue(_viewOpacity->value());
     } else if (_menuBarOpacity->value() != StyleConfigData::menuBarOpacity()) {
         modified = true;
         _menuBarOpacitySpinBox->setValue(_menuBarOpacity->value());
@@ -269,8 +289,6 @@ void StyleConfig::updateChanged()
         modified = true;
     else if (_tabBarAltStyle->isChecked() != StyleConfigData::tabBarAltStyle())
         modified = true;
-    else if (_transparentDolphinView->isChecked() != StyleConfigData::transparentDolphinView())
-        modified = true;
     else if (_cornerRadius->value() != StyleConfigData::cornerRadius())
         modified = true;
     else if (_tabBGColor->color() != StyleConfigData::tabBGColor())
@@ -291,6 +309,15 @@ void StyleConfig::updateChanged()
         modified = true;
     else if (_useNewCheckBox->isChecked() != StyleConfigData::useNewCheckBox())
         modified = true;
+    else if (_documentModeTabs->isChecked() != StyleConfigData::documentModeTabs())
+        modified = true;
+    else if (_fullOutline->isChecked() != StyleConfigData::fullOutline())
+        modified = true;
+    else if (_scrollBarTransient->isChecked() != StyleConfigData::scrollBarTransient())
+        modified = true;
+    else if (_scrollBarTransientAlwaysShowSlim->isChecked() != StyleConfigData::scrollBarTransientAlwaysShowSlim())
+        modified = true;
+
 
     if (_shadowSize->currentIndex() == 0) {
         _shadowColor->setEnabled(false);
@@ -320,6 +347,8 @@ void StyleConfig::updateChanged()
 //__________________________________________________________________
 void StyleConfig::load()
 {
+    StyleConfigData::self()->load();
+
     _tabDrawHighlight->setChecked(StyleConfigData::tabDrawHighlight());
     _unifiedTabBarKonsole->setChecked(StyleConfigData::unifiedTabBarKonsole());
     _renderThinSeperatorBetweenTheScrollBar->setChecked(StyleConfigData::renderThinSeperatorBetweenTheScrollBar());
@@ -340,6 +369,18 @@ void StyleConfig::load()
     _menuOpacitySpinBox->setValue(StyleConfigData::menuOpacity());
     _sidebarOpacity->setValue(StyleConfigData::dolphinSidebarOpacity());
     _sidebarOpacitySpinBox->setValue(StyleConfigData::dolphinSidebarOpacity());
+
+    // Migration: convert deprecated TransparentDolphinView checkbox to DolphinViewOpacity slider
+    // Only migrate if the old setting is true AND the new setting hasn't been touched (default 100)
+    // NOTE: This applies in-memory only. We do NOT call save() here to avoid writing to disk
+    // during the load phase, which can cause crashes or overwrite user edits unexpectedly.
+    if (StyleConfigData::transparentDolphinView() && StyleConfigData::dolphinViewOpacity() == 100) {
+        StyleConfigData::setDolphinViewOpacity(0);
+        StyleConfigData::setTransparentDolphinView(false);
+    }
+
+    _viewOpacity->setValue(StyleConfigData::dolphinViewOpacity());
+    _viewOpacitySpinBox->setValue(StyleConfigData::dolphinViewOpacity());
     _tabBarDrawCenteredTabs->setChecked(StyleConfigData::tabBarDrawCenteredTabs());
     _menuBarOpacity->setValue(StyleConfigData::menuBarOpacity());
     _menuBarOpacitySpinBox->setValue(StyleConfigData::menuBarOpacity());
@@ -356,6 +397,10 @@ void StyleConfig::load()
     _fancyMargins->setChecked(StyleConfigData::fancyMargins());
     _sunkenEffect->setChecked(StyleConfigData::sunkenEffect());
     _useNewCheckBox->setChecked(StyleConfigData::useNewCheckBox());
+    _documentModeTabs->setChecked(StyleConfigData::documentModeTabs());
+    _fullOutline->setChecked(StyleConfigData::fullOutline());
+    _scrollBarTransient->setChecked(StyleConfigData::scrollBarTransient());
+    _scrollBarTransientAlwaysShowSlim->setChecked(StyleConfigData::scrollBarTransientAlwaysShowSlim());
 
     if (!_widgetDrawShadow->isChecked()) {
         _widgetToolBarShadow->setEnabled(false);
@@ -397,7 +442,6 @@ void StyleConfig::load()
 
     _tabBarAltStyle->setChecked(StyleConfigData::tabBarAltStyle());
     _tabBGColor->setColor(StyleConfigData::tabBGColor());
-    _transparentDolphinView->setChecked(StyleConfigData::transparentDolphinView());
     _cornerRadius->setValue(StyleConfigData::cornerRadius());
     _tabUseHighlightColor->setChecked(StyleConfigData::tabUseHighlightColor());
     _tabUseBrighterCloseIcon->setChecked(StyleConfigData::tabUseBrighterCloseIcon());

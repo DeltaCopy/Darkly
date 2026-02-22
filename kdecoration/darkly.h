@@ -21,17 +21,13 @@ using InternalSettingsListIterator = QListIterator<InternalSettingsPtr>;
 //* metrics
 namespace Metrics
 {
-//* corner radius, in units of small spacing
-// Keep this value in sync with Bias_Default in
-// kstyle/darklymetrics.h
-// NOTE: this value is multiplied by settings()->smallSpacing()
-// which is always 2 on wayland, but can be something else on X11
-static constexpr qreal Frame_FrameRadius = 2.5;
+//* corner radius (pixels)
+static constexpr qreal Frame_FrameRadius = 5;
 
 //* titlebar metrics, in units of small spacing
 static constexpr int TitleBar_TopMargin = 2;
 static constexpr int TitleBar_BottomMargin = 2;
-static constexpr int TitleBar_SideMargin = 2;
+static constexpr int TitleBar_SideMargin = 4;
 static constexpr int TitleBar_ButtonSpacing = 2;
 
 // shadow dimensions (pixels)

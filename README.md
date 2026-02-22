@@ -1,21 +1,17 @@
 
-# About this fork
+# Darkly
 
-This fork attempts to revive lightly with a different approach from boehs, with the assumption that Luwx won't ever resume his project.
+Forked from the ***lightly*** theme, this style brings a fresh and unique look to your applications
 
-This means that this fork allows real changes, and not just maintainence.
+![Darkly](https://github.com/user-attachments/assets/624352f7-ac29-46e4-b2e8-bb7df3ecb7ed)
 
-![Darkly](https://github.com/user-attachments/assets/0d60725e-c146-4e1e-9889-fe8317d52b22)
+### What to expect?
 
-## What changed?
+The main goal is to provide a style for **Qt applications**.
 
-- [x] Redesign the tabbar
-- [x] Make the buttons sligthly larger
-- [x] Change the defaults to fit the normal use-cases better
-- [x] Add my own colorscheme to it
-- [x] Make installation in all major distros easy
-- [x] Rename the project to something like „Darkly”
-- [x] Maintain the project
+Other than that we maintain a style for **Plasma window decorations** and a **color scheme**.
+
+Most changes are optional, if you don't like them, you can turn them off in the settings.
 
 ## Installation
 
@@ -170,7 +166,7 @@ sudo zypper in --no-recommends git ninja cmake kf6-extra-cmake-modules kf6-kconf
       kservice-devel kinit-devel knotifications-devel kwindowsystem-devel kguiaddons-devel \
       kiconthemes-devel kpackage-devel kwin5-devel xcb-util-devel xcb-util-cursor-devel \
       xcb-util-wm-devel xcb-util-keysyms-devel kcmutils-devel \
-      libqt5-qtquick3d-devel kirigami2-devel libKF5I18n5
+      libqt5-qtquick3d-devel kirigami2-devel libKF5I18n5 qt6-quickwidgets-devel
 ```
 
 ```
@@ -289,23 +285,43 @@ inputs.darkly.packages.${pkgs.system}.darkly-qt5
 inputs.darkly.packages.${pkgs.system}.darkly-qt6
 ```
 
+---
+
+### Alpine Linux / postmarketOS
+ 
+```
+doas apk add --virtual build-deps bash build-base clang21-extra-tools git cmake extra-cmake-modules kdecoration-dev \
+      kcmutils-dev kcolorscheme-dev kwindowsystem-dev kirigami-dev frameworkintegration-dev \
+      kcmutils5-dev kirigami2-dev frameworkintegration5-dev qt5-qtx11extras-dev
+```
+ 
+```
+git clone --single-branch --depth=1 https://github.com/Bali10050/Darkly.git
+cd Darkly
+./install.sh
+```
+
+```
+doas apk del build-deps
+```
 
 ---
 
+### Transparency
+Plasma by default uses the qqc2-desktop-style, that means Qt Quick applications will mostly look like Qt applications.
+However we don't really have control over how those applications look.
+This also means that if you want to use transparency, you'll need something that can blur things that don't support it by default.
+I recommend checking out [kwin-effects-better-blur-dx](https://github.com/xarblu/kwin-effects-better-blur-dx) or [kwin-effects-glass](https://github.com/4v3ngR/kwin-effects-glass) to get around this issue
 
-## Known issues & solutions
+> [!NOTE]
+> These effects conflict with the stock blur effect and other effects replacing it.
 
-### Blurred icon rendering on Wayland with fractional scaling
+***
 
-As referenced in https://github.com/Bali10050/Darkly/issues/14
+### Older plasma versions
 
-On Wayland when scaling is set to >100% some icons appear blurred.
+For plasma versions below 6.3, please use [v0.5.16](https://github.com/Bali10050/Darkly/releases/tag/v0.5.16) or the [Darkly-6.2](https://github.com/Bali10050/Darkly/tree/Darkly-6.2) branch.
 
-The fix for now until QT is updated is to add `QT_SCALE_FACTOR_ROUNDING_POLICY=RoundPreferFloor` into the file `/etc/environment`
+For plasma versions below 6.5, please use [v0.5.25](https://github.com/Bali10050/Darkly/releases/tag/v0.5.25) or the [Darkly-6.4](https://github.com/Bali10050/Darkly/tree/Darkly-6.4) branch.
 
-Restart to apply the changes.
 
-For further details see: https://bugs.kde.org/show_bug.cgi?id=479891
-
-### Issues with window decorations on older plasma versions
-For plasma versions below 6.3, please use [v0.5.16](https://github.com/Bali10050/Darkly/releases/tag/v0.5.16) or the [Darkly\(6.2\)](https://github.com/Bali10050/Darkly/tree/Darkly(6.2)) branch.

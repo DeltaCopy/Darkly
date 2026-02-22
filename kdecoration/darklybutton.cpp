@@ -145,6 +145,7 @@ void IconButton::paint(QPainter *painter, const QRectF &repaintRegion)
 //__________________________________________________________________
 void IconButton::drawIcon(QPainter *painter) const
 {
+    auto d = qobject_cast<Decoration *>(decoration());
     painter->setRenderHints(QPainter::Antialiasing);
 
     /*
@@ -157,7 +158,9 @@ void IconButton::drawIcon(QPainter *painter) const
 
     const qreal width(rect.width());
     painter->scale(width / 20, width / 20);
-    painter->translate(1, 1);
+    auto c = decoration()->window();
+    if ( (c && c->isMaximized()) && d->internalSettings()->floatingTitlebar() )  painter->translate(1, 2);
+    else painter->translate(1, 1);
 
     // render background
     const QColor backgroundColor(this->backgroundColor());
@@ -214,7 +217,6 @@ void IconButton::drawIcon(QPainter *painter) const
 
                 // center dot
                 QColor backgroundColor(this->backgroundColor());
-                auto d = qobject_cast<Decoration *>(decoration());
                 if (!backgroundColor.isValid() && d) {
                     backgroundColor = d->titleBarColor();
                 }

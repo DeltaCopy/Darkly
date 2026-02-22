@@ -663,9 +663,17 @@ void Helper::topHighlight(QPainter *painter, const QRectF &rect, const int radiu
 
     p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
     p.setBrush(Qt::black);
-    p.drawRoundedRect(QRect(0, 1, rect.width(), rect.height()), radius, radius);
 
+    if (StyleConfigData::fullOutline())
+    {
+    p.drawRoundedRect(QRect(1, 1, rect.width() - 2, rect.height() - 2), radius, radius);
     painter->drawPixmap(QRect(rect.x(), rect.y(), rect.width(), rect.height()), pixmap);
+    }
+    else
+    {
+    p.drawRoundedRect(QRect(0, 1, rect.width(), rect.height()), radius, radius);
+    painter->drawPixmap(QRect(rect.x(), rect.y(), rect.width(), rect.height()), pixmap);
+    }
 }
 
 //______________________________________________________________________________
@@ -1579,7 +1587,7 @@ void Helper::renderProgressBarBusyContents(QPainter *painter,
 }
 
 //______________________________________________________________________________
-void Helper::renderScrollBarHandle(QPainter *painter, const QRectF &rect, const QColor &color) const
+void Helper::renderScrollBarHandle(QPainter *painter, const QRectF &rect, const QColor &fg, QColor bg) const
 {
     // setup painter
     painter->setRenderHint(QPainter::Antialiasing, true);
@@ -1588,11 +1596,14 @@ void Helper::renderScrollBarHandle(QPainter *painter, const QRectF &rect, const 
     const qreal radius(0.5 * std::min({baseRect.width(), baseRect.height()}));
 
     // content
-    if (color.isValid()) {
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(color);
-        painter->drawRoundedRect(baseRect, radius, radius);
+    painter->setPen(Qt::NoPen);
+    if (bg.isValid()) {
+        painter->setBrush(KColorUtils::overlayColors(bg, alphaColor(fg, 0.5)));
+    } else {
+        painter->setBrush(fg);
     }
+    painter->drawRoundedRect(baseRect, radius, radius);
+
 }
 
 //______________________________________________________________________________
@@ -1853,7 +1864,8 @@ bool Helper::hasAlphaChannel(const QWidget *widget) const
 //____________________________________________________________________
 bool Helper::shouldWindowHaveAlpha(const QPalette &palette, bool isDolphin) const
 {
-    if (_activeTitleBarColor.alphaF() < 1.0 || (StyleConfigData::dolphinSidebarOpacity() < 100 && isDolphin) || palette.color(QPalette::Window).alpha() < 255) {
+    if (_activeTitleBarColor.alphaF() < 1.0 || (StyleConfigData::dolphinSidebarOpacity() < 100 && isDolphin)
+        || (StyleConfigData::dolphinViewOpacity() < 100 && isDolphin) || palette.color(QPalette::Window).alpha() < 255) {
         return true;
     }
     return false;

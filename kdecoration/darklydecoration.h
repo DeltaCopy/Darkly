@@ -86,6 +86,16 @@ public:
 
 Q_SIGNALS:
     void tabletModeChanged();
+    inline bool outlinesEnabled() const;
+
+    std::shared_ptr<QPainterPath> titleBarPath()
+    {
+        return m_titleBarPath;
+    }
+    std::shared_ptr<QPainterPath> windowPath()
+    {
+        return m_windowPath;
+    }
 
 public Q_SLOTS:
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -141,6 +151,13 @@ private:
     qreal m_scaledCornerRadius = 3;
 
     bool m_tabletMode = false;
+    //* Exact titlebar path, with clipped rounded corners
+    std::shared_ptr<QPainterPath> m_titleBarPath = std::make_shared<QPainterPath>();
+    //* Exact window path, with clipped rounded corners
+    std::shared_ptr<QPainterPath> m_windowPath = std::make_shared<QPainterPath>();
+
+    //*frame corner radius, scaled according to DPI
+    qreal m_scaledCornerRadius = 3;
 };
 
 bool Decoration::hasBorders() const
@@ -215,6 +232,6 @@ bool Decoration::hideTitleBar() const
 
 bool Decoration::outlinesEnabled() const
 {
-    return !m_internalSettings->roundedCorners() && (m_internalSettings->outlineIntensity() != InternalSettings::OutlineOff);
+    return m_internalSettings->outlineEnabled();
 }
 }

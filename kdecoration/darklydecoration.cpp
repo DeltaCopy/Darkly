@@ -536,7 +536,7 @@ if (m_internalSettings->floatingTitlebar()){
     }
 
     setResizeOnlyBorders(QMarginsF(extSides, 0, extSides, extBottom));
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
     qreal topLeftRadius = 0;
     qreal topRightRadius = 0;
     qreal bottomLeftRadius = 0;
@@ -555,16 +555,16 @@ if (m_internalSettings->floatingTitlebar()){
         }
     }
 #endif
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
     setBorderRadius(KDecoration3::BorderRadius(topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius));
 #endif
 
     if (isMaximized() || !outlinesEnabled()) {
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
         setBorderOutline(KDecoration3::BorderOutline()); // no outline
 #endif
     } else {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) && KDECORATION_VERSION_MINOR >= 5
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) && KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
         const auto color = KColorUtils::mix(
             window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive,
                             ColorRole::Frame),
@@ -577,11 +577,11 @@ if (m_internalSettings->floatingTitlebar()){
                          0.2);
 #endif
 
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
         const qreal thickness = std::max(KDecoration3::pixelSize(window()->scale()),
                                          KDecoration3::snapToPixelGrid(1, window()->scale()));
 #endif
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
         const KDecoration3::BorderRadius outlineRadius(
             topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius
         );
@@ -609,7 +609,7 @@ if (m_internalSettings->floatingTitlebar()){
     }
 
     setResizeOnlyBorders(QMarginsF(extSides, 0, extSides, extBottom));
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
     qreal bottomLeftRadius = 0;
     qreal bottomRightRadius = 0;
 
@@ -624,15 +624,15 @@ if (m_internalSettings->floatingTitlebar()){
         }
     }
 #endif
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
     setBorderRadius(KDecoration3::BorderRadius(0, 0, bottomRightRadius, bottomLeftRadius));
 #endif
     if (isMaximized() || !outlinesEnabled()) {
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
         setBorderOutline(KDecoration3::BorderOutline());
 #endif
     } else {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) && KDECORATION_VERSION_MINOR >= 5
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) && KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
         const auto color = KColorUtils::mix(window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Frame),
                                             window()->palette().text().color(),
                                             KColorScheme::frameContrast());
@@ -642,7 +642,7 @@ if (m_internalSettings->floatingTitlebar()){
                          0.2);
 #endif
 
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
         const qreal thickness = std::max(KDecoration3::pixelSize(window()->scale()), KDecoration3::snapToPixelGrid(1, window()->scale()));
 
         qreal bottomLeftRadius = 0;
@@ -654,7 +654,7 @@ if (m_internalSettings->floatingTitlebar()){
         }
 #endif
 
-#if KDECORATION_VERSION_MINOR >= 5
+#if KDECORATION_VERSION >= KDECORATION_VERSION_CHECK(6, 5, 0)
         const auto radius = KDecoration3::BorderRadius(m_scaledCornerRadius, m_scaledCornerRadius, bottomRightRadius, bottomLeftRadius);
         setBorderOutline(KDecoration3::BorderOutline(thickness, color, radius));
 #endif

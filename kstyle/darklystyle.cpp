@@ -389,6 +389,12 @@ void Style::polish(QWidget *widget)
 
         while (parent) {
             if (parent->inherits("KMessageWidget")) {
+                for (QWidget* p = parent->parentWidget(); p; p = p->parentWidget()) {
+                    if (p->inherits("KateMessageWidget")) {
+                        return;
+                    }
+                }
+
                 if (!parent->property("_darklyRoundedOverlay").isValid())
                 {
                     auto overlay = new RoundedOuterOutlineOverlay(parent, _isDolphin, StyleConfigData::cornerRadius(), StyleConfigData::cornerRadius() * 2);
@@ -4401,8 +4407,10 @@ bool Style::drawFrameTabBarBasePrimitive(const QStyleOption *option, QPainter *p
         if (!tabOption)
             return true;
 
+        if (_isDolphin || _isKonsole){
         QColor backgroundColor = _helper->transparentBarBgColor(widget->palette().color(QPalette::Window), painter, widget->rect(), BarType::TabBar);
         painter->fillRect(widget->rect(), backgroundColor);
+        }
 
         return true;
 }

@@ -154,6 +154,7 @@ void Button::paint(QPainter *painter, const QRectF &repaintRegion)
 //__________________________________________________________________
 void Button::drawIcon(QPainter *painter) const
 {
+    auto d = qobject_cast<Decoration *>(decoration());
     painter->setRenderHints(QPainter::Antialiasing);
 
     /*
@@ -166,7 +167,9 @@ void Button::drawIcon(QPainter *painter) const
 
     const qreal width(rect.width());
     painter->scale(width / 20, width / 20);
-    painter->translate(1, 1);
+    auto c = decoration()->window();
+    if ( (c && c->isMaximized()) && d->internalSettings()->floatingTitlebar() )  painter->translate(1, 2);
+    else painter->translate(1, 1);
 
     // render background
     const QColor backgroundColor(this->backgroundColor());
@@ -223,7 +226,6 @@ void Button::drawIcon(QPainter *painter) const
 
                 // center dot
                 QColor backgroundColor(this->backgroundColor());
-                auto d = qobject_cast<Decoration *>(decoration());
                 if (!backgroundColor.isValid() && d) {
                     backgroundColor = d->titleBarColor();
                 }
@@ -270,6 +272,28 @@ void Button::drawIcon(QPainter *painter) const
             break;
         }
 
+        case DecorationButtonType::ExcludeFromCapture: {
+            // A spy hat (like view-private.svg icon)
+            const qreal cx = 9, cy = 9;
+            // Hat crown with dip/crease at top (filled)
+            std::array crownPoints{QPointF(cx - 4.1, cy - 2.5),
+                                   QPointF(cx - 3.2, cy - 6.1),
+                                   QPointF(cx, cy - 5),
+                                   QPointF(cx + 3.2, cy - 6.1),
+                                   QPointF(cx + 4.1, cy - 2.5)};
+            painter->setBrush(pen.color());
+            painter->drawPolygon(crownPoints.data(), crownPoints.size());
+            painter->setBrush(Qt::NoBrush);
+            // Hat brim
+            painter->drawLine(QPointF(cx - 6.2, cy - 0.5), QPointF(cx + 6.2, cy - 0.5));
+            // Glasses' lenses
+            painter->drawEllipse(QPointF(cx - 4, cy + 3.8), 2.3, 2.3);
+            painter->drawEllipse(QPointF(cx + 4, cy + 3.8), 2.3, 2.3);
+            // Bridge between lenses
+            painter->drawLine(QPointF(cx - 1.5, cy + 3.8), QPointF(cx + 1.5, cy + 3.8));
+            break;
+        }
+
         case DecorationButtonType::ApplicationMenu: {
             painter->drawRect(QRectF(3.5, 4.5, 11, 1));
             painter->drawRect(QRectF(3.5, 8.5, 11, 1));
@@ -308,7 +332,8 @@ QColor Button::foregroundColor() const
     } else if (type() == DecorationButtonType::Close && d->internalSettings()->outlineCloseButton()) {
         return d->titleBarColor();
 
-    } else if ((type() == DecorationButtonType::KeepBelow || type() == DecorationButtonType::KeepAbove || type() == DecorationButtonType::Shade)
+    } else if ((type() == DecorationButtonType::KeepBelow || type() == DecorationButtonType::KeepAbove || type() == DecorationButtonType::Shade
+                || type() == DecorationButtonType::ExcludeFromCapture)
                && isChecked()) {
         return d->titleBarColor();
 
@@ -341,7 +366,8 @@ QColor Button::backgroundColor() const
     } else if ((type() == DecorationButtonType::KeepBelow || type() == DecorationButtonType::KeepAbove || type() == DecorationButtonType::Shade)
                && isChecked()) {
         return d->fontColor();
-
+    } else if (type() == DecorationButtonType::ExcludeFromCapture && isChecked()) {
+        return c->color(ColorGroup::Warning, ColorRole::Foreground);
     } else if (m_animation->state() == QAbstractAnimation::Running) {
         if (type() == DecorationButtonType::Close) {
             if (d->internalSettings()->outlineCloseButton()) {

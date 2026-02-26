@@ -389,6 +389,12 @@ void Style::polish(QWidget *widget)
 
         while (parent) {
             if (parent->inherits("KMessageWidget")) {
+                for (QWidget* p = parent->parentWidget(); p; p = p->parentWidget()) {
+                    if (p->inherits("KateMessageWidget")) {
+                        return;
+                    }
+                }
+
                 if (!parent->property("_darklyRoundedOverlay").isValid())
                 {
                     auto overlay = new RoundedOuterOutlineOverlay(parent, _isDolphin, StyleConfigData::cornerRadius(), StyleConfigData::cornerRadius() * 2);

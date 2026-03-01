@@ -19,7 +19,6 @@ set(QT_MIN_VERSION "6.7.0")
 include(GenerateExportHeader)
 include(WriteBasicConfigVersionFile)
 include(FeatureSummary)
-include(GNUInstallDirs)
 
 find_package(ECM ${KF5_MIN_VERSION} REQUIRED NO_MODULE)
 #find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
@@ -157,6 +156,16 @@ function(build_qt6)
 
     if(WITH_DECORATIONS)
         find_package(KDecoration3 REQUIRED)
+        set(KDECORATION_VERSION ${KDecoration3_VERSION})
+        set(KDECORATION_VERSION_MAJOR ${KDecoration3_VERSION_MAJOR})
+        set(KDECORATION_VERSION_MINOR ${KDecoration3_VERSION_MINOR})
+        set(KDECORATION_VERSION_PATCH ${KDecoration3_VERSION_PATCH})
+        
+        add_definitions(
+            -DKDECORATION_VERSION_MAJOR=${KDECORATION_VERSION_MAJOR}
+            -DKDECORATION_VERSION_MINOR=${KDECORATION_VERSION_MINOR}
+            -DKDECORATION_VERSION_PATCH=${KDECORATION_VERSION_PATCH}
+        )
         add_subdirectory(kdecoration)
     endif()
 

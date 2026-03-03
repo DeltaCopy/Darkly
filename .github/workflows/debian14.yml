@@ -61,8 +61,9 @@ jobs:
           echo "SHA256SUM=$SHA256SUM" >> "$GITHUB_ENV"
       - name: Print logfile
         run: |
-          ls -lart $GITHUB_WORKSPACE/Darkly/build_kf6/_CPack_Packages/Linux/DEB/
-          cat  $GITHUB_WORKSPACE/Darkly/build_kf6/_CPack_Packages/Linux/DEB/PreinstallOutput.log
+          ls -laRt $GITHUB_WORKSPACE/
+          ls -lart build_kf6/_CPack_Packages/Linux/DEB/
+          cat build_kf6/_CPack_Packages/Linux/DEB/PreinstallOutput.log
       - name: Publish DEB
         if: ${{ env.SHA256SUM != '' }}
         uses: actions/upload-artifact@v5

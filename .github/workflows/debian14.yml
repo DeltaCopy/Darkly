@@ -59,11 +59,11 @@ jobs:
           SHA256SUM=$(sha256sum $GITHUB_WORKSPACE/$publish_filename | awk '{ print $1 }')
           echo "ARTIFACT = $publish_filename | SHA256SUM = $SHA256SUM"
           echo "SHA256SUM=$SHA256SUM" >> "$GITHUB_ENV"
-      - name: Print logfile
+      - name: Print logfile on CPack error
         run: |
-          ls -laRt $GITHUB_WORKSPACE/
-          ls -lart build_kf6/_CPack_Packages/Linux/DEB/
-          cat build_kf6/_CPack_Packages/Linux/DEB/PreinstallOutput.log
+          if [ -f build_kf6/_CPack_Packages/Linux/DEB/PreinstallOutput.log ]; then
+              cat build_kf6/_CPack_Packages/Linux/DEB/PreinstallOutput.log
+          fi
       - name: Publish DEB
         if: ${{ env.SHA256SUM != '' }}
         uses: actions/upload-artifact@v5

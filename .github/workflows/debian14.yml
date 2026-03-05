@@ -48,6 +48,7 @@ jobs:
           cmake "${cmake_opts[@]}" && cmake --build build_kf6 -j$(nproc) && echo "Build completed!" || echo "Build failed!" || exit 1
       - name: Build DEB package
         id: create_deb_package
+        continue-on-error: true
         run: |
           cd build_kf6; cpack -G DEB -V -DCPACK_THREADS=$(nproc)
           artifact=$GITHUB_WORKSPACE/Darkly-${{ inputs.version }}/packages/darkly-${{ inputs.version }}_amd64.deb
@@ -58,6 +59,11 @@ jobs:
           SHA256SUM=$(sha256sum $GITHUB_WORKSPACE/$publish_filename | awk '{ print $1 }')
           echo "ARTIFACT = $publish_filename | SHA256SUM = $SHA256SUM"
           echo "SHA256SUM=$SHA256SUM" >> "$GITHUB_ENV"
+      - name: Print logfile on CPack error
+        run: |
+          if [ -f build_kf6/_CPack_Packages/Linux/DEB/PreinstallOutput.log ]; then
+              cat build_kf6/_CPack_Packages/Linux/DEB/PreinstallOutput.log
+          fi
       - name: Publish DEB
         if: ${{ env.SHA256SUM != '' }}
         uses: actions/upload-artifact@v5

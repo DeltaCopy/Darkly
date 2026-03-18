@@ -55,7 +55,7 @@ jobs:
           mv "$zst_file" $publish_filename
           echo "ARTIFACT=$publish_filename" >> "$GITHUB_ENV"
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ env.ARTIFACT }}

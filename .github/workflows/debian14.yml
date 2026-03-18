@@ -30,7 +30,7 @@ jobs:
                     qt6-base-dev libkf6coreaddons-dev libkf6colorscheme-dev \
                     libkf6config-dev libkf6guiaddons-dev libkf6i18n-dev libkf6iconthemes-dev \
                     libkf6windowsystem-dev libkf6kcmutils-dev libkirigami-dev libkf6style-dev
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v5.0.3
         with:
           key: ${{ runner.os }}-v${{ inputs.version }}-${{ hashFiles(inputs.cache-file-path) }}
           path: ${{ inputs.cache-file-path }}
@@ -60,7 +60,7 @@ jobs:
           echo "SHA256SUM=$SHA256SUM" >> "$GITHUB_ENV"
       - name: Publish DEB
         if: ${{ env.SHA256SUM != '' }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ env.ARTIFACT }}

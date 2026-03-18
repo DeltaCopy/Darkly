@@ -17,7 +17,7 @@ jobs:
           pattern: darkly-${{ env.VERSION }}*
           merge-multiple: true
       - name: Release
-        uses: softprops/action-gh-release@v2.4.2
+        uses: softprops/action-gh-release@v2.6.1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: darkly-${{ env.VERSION }}*

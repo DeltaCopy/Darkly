@@ -54,6 +54,8 @@ ConfigWidget::ConfigWidget(QObject *parent, const KPluginMetaData &data, const Q
     connect(m_ui.roundedCorners, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
     connect(m_ui.otherCornerRadius, SIGNAL(valueChanged(int)), SLOT(updateChanged()));
     connect(m_ui.floatingTitlebar, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
+    connect(m_ui.blurTransparentTitleBar, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
+    connect(m_ui.matchInactiveTitleBar, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
 
     // track animations changes
     connect(m_ui.animationsEnabled, &QAbstractButton::clicked, this, &ConfigWidget::updateChanged);
@@ -92,6 +94,8 @@ void ConfigWidget::load()
 #endif
     m_ui.otherCornerRadius->setValue(m_internalSettings->otherCornerRadius());
     m_ui.floatingTitlebar->setChecked(m_internalSettings->floatingTitlebar());
+    m_ui.blurTransparentTitleBar->setChecked(m_internalSettings->blurTransparentTitleBar());
+    m_ui.matchInactiveTitleBar->setChecked(m_internalSettings->matchInactiveTitleBar());
 
     // load shadows
     if (m_internalSettings->shadowSize() <= InternalSettings::ShadowVeryLarge)
@@ -128,6 +132,8 @@ void ConfigWidget::save()
     m_internalSettings->setRoundedCorners(m_ui.roundedCorners->isChecked());
     m_internalSettings->setOtherCornerRadius(m_ui.otherCornerRadius->value());
     m_internalSettings->setFloatingTitlebar(m_ui.floatingTitlebar->isChecked());
+    m_internalSettings->setBlurTransparentTitleBar(m_ui.blurTransparentTitleBar->isChecked());
+    m_internalSettings->setMatchInactiveTitleBar(m_ui.matchInactiveTitleBar->isChecked());
 
     m_internalSettings->setShadowSize(m_ui.shadowSize->currentIndex());
     m_internalSettings->setShadowStrength(qRound(qreal(m_ui.shadowStrength->value() * 255) / 100));
@@ -176,6 +182,8 @@ void ConfigWidget::defaults()
     m_ui.roundedCorners->setChecked(m_internalSettings->roundedCorners());
     m_ui.otherCornerRadius->setValue(m_internalSettings->otherCornerRadius());
     m_ui.floatingTitlebar->setChecked(m_internalSettings->floatingTitlebar());
+    m_ui.blurTransparentTitleBar->setChecked(m_internalSettings->blurTransparentTitleBar());
+    m_ui.matchInactiveTitleBar->setChecked(m_internalSettings->matchInactiveTitleBar());
 
     m_ui.shadowSize->setCurrentIndex(m_internalSettings->shadowSize());
     m_ui.shadowStrength->setValue(qRound(qreal(m_internalSettings->shadowStrength() * 100) / 255));
@@ -209,6 +217,10 @@ void ConfigWidget::updateChanged()
     else if (m_ui.otherCornerRadius->value() != m_internalSettings->otherCornerRadius())
         modified = true;
     else if (m_ui.floatingTitlebar->isChecked() != m_internalSettings->floatingTitlebar())
+        modified = true;
+    else if (m_ui.blurTransparentTitleBar->isChecked() != m_internalSettings->blurTransparentTitleBar())
+        modified = true;
+    else if (m_ui.matchInactiveTitleBar->isChecked() != m_internalSettings->matchInactiveTitleBar())
         modified = true;
 
     // animations

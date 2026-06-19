@@ -4391,6 +4391,18 @@ bool Style::drawFrameTabWidgetPrimitive(const QStyleOption *option, QPainter *pa
     if (tabOption->tabBarSize.isEmpty() && !isQtQuickControl)
         return true;
 
+    // When Dolphin's view is transparent, the tab bar above and KItemListContainer below
+    // both punch transparent holes and fill at dolphinViewOpacity. The frame background
+    // here would otherwise be a fully opaque strip between them — the visible line.
+    // Match the surrounding areas: punch transparent and fill at the same opacity.
+    if (_isDolphin && StyleConfigData::dolphinViewOpacity() < 100 && widget && _translucentWidgets.contains(widget->window())) {
+        _helper->renderTransparentArea(painter, option->rect);
+        QColor backgroundColor = option->palette.color(QPalette::Window);
+        backgroundColor.setAlphaF(StyleConfigData::dolphinViewOpacity() / 100.0);
+        painter->fillRect(option->rect, backgroundColor);
+        return true;
+    }
+
     // define colors
     const auto &palette(option->palette);
     const auto background(_helper->frameBackgroundColor(palette));

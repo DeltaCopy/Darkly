@@ -174,10 +174,27 @@ QColor Decoration::titleBarColor() const
     auto c = window();
     if (hideTitleBar())
         return c->color(ColorGroup::Inactive, ColorRole::TitleBar);
-    else if (m_animation->state() == QAbstractAnimation::Running) {
-        return KColorUtils::mix(c->color(ColorGroup::Inactive, ColorRole::TitleBar), c->color(ColorGroup::Active, ColorRole::TitleBar), m_opacity);
-    } else
-        return c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
+
+    QColor color;
+    if (!m_internalSettings->matchInactiveTitleBar() &&
+        m_animation->state() == QAbstractAnimation::Running) {
+        color = KColorUtils::mix(c->color(ColorGroup::Inactive, ColorRole::TitleBar),
+                                 c->color(ColorGroup::Active, ColorRole::TitleBar),
+                                 m_opacity);
+    } else {
+        const ColorGroup group = (c->isActive() || m_internalSettings->matchInactiveTitleBar())
+                                 ? ColorGroup::Active : ColorGroup::Inactive;
+        color = c->color(group, ColorRole::TitleBar);
+    }
+
+    if (m_internalSettings->blurTransparentTitleBar()) {
+        const int opacity = KSharedConfig::openConfig(QStringLiteral("darklyrc"))
+                                ->group(QStringLiteral("Style"))
+                                .readEntry("ToolBarOpacity", 100);
+        color.setAlpha(qRound(qBound(0, opacity, 100) * 255.0 / 100));
+    }
+
+    return color;
 }
 //________________________________________________________________
 QColor Decoration::outlineColor() const
@@ -199,7 +216,8 @@ QColor Decoration::outlineColor() const
 QColor Decoration::fontColor() const
 {
     auto c = window();
-    return c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Foreground);
+    const bool useActive = c->isActive() || m_internalSettings->matchInactiveTitleBar();
+    return c->color(useActive ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Foreground);
 }
 
 //________________________________________________________________
@@ -272,50 +290,38 @@ bool Decoration::init()
 //________________________________________________________________
 void Decoration::updateBlur()
 {
-if (m_internalSettings->floatingTitlebar()){
     auto c = window();
-    const QColor titleBarColor = c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
-
-    // set opaque to false when non-maximized, regardless of color (prevents kornerbug)
-    if (titleBarColor.alpha() == 255) {
+    const QColor tbColor = this->titleBarColor();
+    if (tbColor.alpha() == 255) {
         this->setOpaque(c->isMaximized());
     } else {
         this->setOpaque(false);
     }
 
-    // Recalculate window shapes
-    calculateWindowAndTitleBarShapes(true);
+    if (m_internalSettings->floatingTitlebar()) {
+        // Recalculate window shapes
+        calculateWindowAndTitleBarShapes(true);
 
-    // Get window rectangle as integers
-    QRect windowRect(QPoint(0, 0), c->size().toSize());
+        // Get window rectangle as integers
+        QRect windowRect(QPoint(0, 0), c->size().toSize());
 
-    // Height of the blur region
-    const int blurHeight = (buttonSize() + (Metrics::TitleBar_TopMargin * 2) + 8);
+        // Height of the blur region
+        const int blurHeight = (buttonSize() + (Metrics::TitleBar_TopMargin * 2) + 8);
 
-    // Corner radius
-    const qreal blurRadius = c->isMaximized() ? 0.0 : m_scaledCornerRadius;
+        // Corner radius
+        const qreal blurRadius = c->isMaximized() ? 0.0 : m_scaledCornerRadius;
 
-    // Create a rounded rectangle path for the top strip
-    QPainterPath path;
-    path.addRoundedRect(QRectF(0, 0, windowRect.width(), blurHeight), blurRadius, blurRadius);
+        // Create a rounded rectangle path for the top strip
+        QPainterPath path;
+        path.addRoundedRect(QRectF(0, 0, windowRect.width(), blurHeight), blurRadius, blurRadius);
 
-    // Convert path to QRegion and set as blur region
-    QRegion blurRegion(path.toFillPolygon().toPolygon());
-    this->setBlurRegion(blurRegion);
-} else {
-    auto c = window();
-    const QColor titleBarColor = c->color(c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
-
-    // set opaque to false when non-maximized, regardless of color (prevents kornerbug)
-    if (titleBarColor.alpha() == 255) {
-        this->setOpaque(c->isMaximized());
+        // Convert path to QRegion and set as blur region
+        QRegion blurRegion(path.toFillPolygon().toPolygon());
+        this->setBlurRegion(blurRegion);
     } else {
-        this->setOpaque(false);
+        calculateWindowAndTitleBarShapes(true);
+        this->setBlurRegion(QRegion(m_windowPath->toFillPolygon().toPolygon()));
     }
-
-    calculateWindowAndTitleBarShapes(true);
-    this->setBlurRegion(QRegion(m_windowPath->toFillPolygon().toPolygon()));
-}
 }
 
 //________________________________________________________________
@@ -877,9 +883,10 @@ void Decoration::paint(QPainter *painter, const QRectF &repaintRegion)
 void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
 {
     const auto c = window();
+    const QColor titleBarColor = this->titleBarColor();
     QRectF rect(QPointF(0, 0), QSizeF(size().width(), borderTop()));
     QBrush frontBrush;
-    QBrush backBrush(this->titleBarColor());
+    QBrush backBrush(titleBarColor);
 
     if (!rect.intersects(repaintRegion)) {
         return;
@@ -890,21 +897,20 @@ void Decoration::paintTitleBar(QPainter *painter, const QRectF &repaintRegion)
 
     // render a linear gradient on title area
     if (c->isActive() && m_internalSettings->drawBackgroundGradient()) {
-        const QColor titleBarColor(this->titleBarColor());
         QLinearGradient gradient(0, 0, 0, m_titleRect.height());
         gradient.setColorAt(0.0, titleBarColor.lighter(120));
         gradient.setColorAt(0.8, titleBarColor);
         painter->setBrush(gradient);
 
     } else {
-        painter->setBrush(titleBarColor());
+        painter->setBrush(titleBarColor);
     }
 
     auto s = settings();
     painter->drawPath(*m_titleBarPath);
 
     // top highlight
-    if (qGray(this->titleBarColor().rgb()) < 130 && m_internalSettings->drawHighlight()) {
+    if (qGray(titleBarColor.rgb()) < 130 && m_internalSettings->drawHighlight()) {
         if (isMaximized() || !s->isAlphaChannelSupported()) {
             painter->setPen(QColor(255, 255, 255, 30));
             painter->drawLine(m_titleRect.topLeft(), m_titleRect.topRight());

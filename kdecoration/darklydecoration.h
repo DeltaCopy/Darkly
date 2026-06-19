@@ -162,6 +162,7 @@ private:
 
     //*frame corner radius, scaled according to DPI
     qreal m_scaledCornerRadius = 3;
+
 };
 
 bool Decoration::hasBorders() const

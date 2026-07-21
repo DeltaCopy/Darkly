@@ -4204,6 +4204,18 @@ bool Style::drawFrameLineEditPrimitive(const QStyleOption *option, QPainter *pai
     bool isVisible = false;
     const auto isControl = isQtQuickControl(option, widget);
 
+    if (_isDolphin && !isControl && widget && widget->inherits("DolphinUrlNavigator")
+        && StyleConfigData::disableDolphinUrlNavigatorBackground() && StyleConfigData::toolBarOpacity() >= 100
+        && background.alpha() != 0) {
+        // with an opaque toolbar the url navigator should blend into it: fill the bar
+        // flat with the window (toolbar) color and skip renderLineEdit entirely.
+        // a transparent fill lets the line edit's box shadow/outline show through,
+        // painting a dark band and halo around the bar (seen with KIO 6, where
+        // KUrlNavigator paints PE_FrameLineEdit itself in breadcrumb mode)
+        painter->fillRect(rect, palette.color(QPalette::Window));
+        return true;
+    }
+
     if (_isDolphin && !isControl) {
         // take precautions only change this on the Dolphin location bar
         if (widget->inherits("DolphinUrlNavigator")) {

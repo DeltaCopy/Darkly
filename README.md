@@ -136,7 +136,7 @@ Adjust flatpak settings (via Flatseal or command)
 
 ```
 sudo xbps-install -Sy git extra-cmake-modules base-devel qt5-devel qt6-base-devel \
-      kcoreaddons-devel kf6-kcoreaddons-devel kcmutils-deve kf6-kcmutils-devel \
+      kcoreaddons-devel kf6-kcoreaddons-devel kcmutils-devel kf6-kcmutils-devel \
       kconfig-devel kf6-kconfig-devel kguiaddons-devel kf6-kguiaddons-devel \
       ki18n-devel kf6-ki18n-devel kiconthemes-devel kf6-kiconthemes-devel \
       kwindowsystem-devel kf6-kwindowsystem-devel kirigami2-devel kf6-kirigami-devel \

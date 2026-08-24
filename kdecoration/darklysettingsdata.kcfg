@@ -132,6 +132,16 @@
        <default>false</default>
     </entry>
 
+    <!-- transparent, blurred title bar (alpha synced to style ToolBarOpacity) -->
+    <entry name="BlurTransparentTitleBar" type = "Bool">
+       <default>false</default>
+    </entry>
+
+    <!-- match inactive titlebar to active -->
+    <entry name="MatchInactiveTitleBar" type = "Bool">
+      <default>false</default>
+    </entry>
+
     <!-- window specific settings -->
     <entry name="ExceptionType" type="Enum">
       <choices>

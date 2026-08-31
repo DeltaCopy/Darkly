@@ -24,7 +24,7 @@ jobs:
         run: pacman -Syu --noconfirm
       - name: Install sudo, git and compile dependencies
         run: |
-           pacman -Syq base-devel --noconfirm
+           pacman -Syq base-devel git --noconfirm
       - name: Setup build user
         run: |
           useradd builduser -m # Create the builduser

@@ -43,7 +43,7 @@ jobs:
         run: sudo -u builduser bash -c 'cd /var/tmp/darkly-archlinux; makepkg -g >> PKGBUILD'
       - name: Build package
         run: |
-          sudo -u builduser bash -c 'cd /var/tmp/darkly-archlinux; makepkg -s'
+          sudo -u builduser bash -c 'cd /var/tmp/darkly-archlinux; makepkg -s --noconfirm'
           zst_file=$(find /var/tmp/darkly-archlinux -name "*.zst*")
           publish_filename=darkly-${{ inputs.version }}-x86_64.pkg.zst
           mv "$zst_file" $publish_filename

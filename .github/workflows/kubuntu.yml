@@ -13,11 +13,11 @@ on:
         required: true
         type: string
 env:
-  KUBUNTU_RELEASE: "25.10"
+  KUBUNTU_RELEASE: "26.04"
 jobs:
   build:
     runs-on: ubuntu-24.04
-    container: deltacopy/kubuntu:25.10
+    container: deltacopy/kubuntu:26.04
     defaults:
       run:
         shell: bash

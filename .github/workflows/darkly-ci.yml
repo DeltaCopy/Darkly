@@ -110,7 +110,6 @@ jobs:
     uses: ./.github/workflows/release.yml
     needs:
       [
-        "archlinux",
         "fedora",
         "opensuse-tumbleweed",
         "kde-neon",

@@ -12,6 +12,14 @@ Forked from the ***lightly*** theme, this style brings a fresh and unique look t
 
 ***
 
+## Help needed!
+
+If you know how the blur effect works, and you like this project, please consider helping me with this: 
+
+https://invent.kde.org/plasma/kwin/-/merge_requests/9032
+
+***
+
 ### What to expect?
 
 The main goal is to provide a style for **Qt applications**.
@@ -36,9 +44,15 @@ If you want **a matching style for your gtk applications**, I recommend checking
 
 ### Thanks to @DeltaCopy, you can use one of these install methods:
 
-#### Fedora copr
+#### Fedora and Derivatives
+
+Install from the Copr:
 
 <https://copr.fedorainfracloud.org/coprs/deltacopy/darkly/>
+
+Or install from the [Terra Repository](https://terrapkg.com/):
+
+<https://github.com/terrapkg/packages/blob/frawhide/anda/themes/darkly/darkly.spec>
 
 #### AUR
 

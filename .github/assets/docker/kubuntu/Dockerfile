@@ -1,4 +1,4 @@
-FROM ubuntu:25.10
+FROM ubuntu:latest
 MAINTAINER DeltaCopy
 USER root
 RUN apt-get update && \

@@ -66,14 +66,14 @@
          </item>
         </widget>
        </item>
-       <item row="9" column="1" colspan="3">
+       <item row="10" column="1" colspan="3">
         <widget class="QCheckBox" name="roundedCorners">
          <property name="text">
           <string>Round bottom corners with no borders</string>
          </property>
         </widget>
        </item>
-       <item row="8" column="1" colspan="4">
+       <item row="9" column="1" colspan="4">
         <widget class="QCheckBox" name="drawTitleBarSeparator">
          <property name="text">
           <string>Draw separator under active window's titlebar</string>

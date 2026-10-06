@@ -4,7 +4,7 @@
 # This package relies on Qt6 and KF6 build dependencies (Qt5 and KF5 dependencies are now dropped)
 
 # basic info
-dev="Bali10050"
+dev="DeltaCopy"
 pkgname="darkly"
 pkgver= # change this to match the name of the release tag you want to build from
 pkgrel=1
